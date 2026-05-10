@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KonradVault — Saugykla</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #07071a;
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── SCROLLBAR ─────────────────────────────── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(99,102,241,.35); border-radius: 3px; }
+
+    /* ── GLASSMORPHISM ─────────────────────────── */
+    .glass {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.07);
+      backdrop-filter: blur(12px);
+    }
+
+    /* ── GRADIENT TEXT ─────────────────────────── */
+    .gtext {
+      background: linear-gradient(135deg,#a78bfa,#818cf8,#60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── TOP NAV ───────────────────────────────── */
+    #topnav {
+      height: 56px;
+      min-height: 56px;
+      background: rgba(7,7,26,.9);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      padding: 0 1rem;
+      gap: .75rem;
+      z-index: 40;
+      flex-shrink: 0;
+    }
+
+    /* ── LAYOUT ────────────────────────────────── */
+    #layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ───────────────────────────────── */
+    #sidebar {
+      width: 240px;
+      min-width: 240px;
+      background: rgba(255,255,255,.02);
+      border-right: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: .75rem .5rem;
+    }
+
+    /* Sidebar naršymo elementas */
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      padding: .45rem .75rem;
+      border-radius: .6rem;
+      cursor: pointer;
+      font-size: .84rem;
+      color: #94a3b8;
+      transition: background .15s, color .15s;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .nav-item:hover  { background: rgba(255,255,255,.06); color: #e2e8f0; }
+    .nav-item.active { background: rgba(99,102,241,.18); color: #a78bfa; }
+    .nav-item .icon  { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* Aplankalų medis */
+    .folder-tree-item { position: relative; }
+    .folder-tree-row {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .38rem .6rem;
+      border-radius: .55rem;
+      cursor: pointer;
+      font-size: .82rem;
+      color: #94a3b8;
+      transition: background .15s, color .15s;
+      user-select: none;
+    }
+    .folder-tree-row:hover  { background: rgba(255,255,255,.05); color: #e2e8f0; }
+    .folder-tree-row.active { background: rgba(99,102,241,.15); color: #a78bfa; }
+    .folder-children { padding-left: 1.1rem; }
+
+    /* ── PAGRINDINIS TURINYS ────────────────────── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Toolbar */
+    #toolbar {
+      height: 52px;
+      min-height: 52px;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      display: flex;
+      align-items: center;
+      padding: 0 1.25rem;
+      gap: .6rem;
+      flex-shrink: 0;
+    }
+
+    /* Failų konteineris */
+    #files-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.25rem;
+    }
+
+    /* ── FAILŲ TINKLELIS ────────────────────────── */
+    #files-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: .9rem;
+    }
+
+    .file-card {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: .9rem;
+      padding: 1rem .75rem .8rem;
+      cursor: pointer;
+      transition: background .2s, border-color .2s, transform .2s;
+      position: relative;
+      user-select: none;
+    }
+    .file-card:hover {
+      background: rgba(255,255,255,.06);
+      border-color: rgba(99,102,241,.3);
+      transform: translateY(-2px);
+    }
+    .file-card.selected {
+      background: rgba(99,102,241,.15);
+      border-color: rgba(99,102,241,.5);
+    }
+    .file-card .thumb {
+      width: 100%;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: .6rem;
+      margin-bottom: .65rem;
+      font-size: 2.6rem;
+      overflow: hidden;
+    }
+    .file-card .thumb img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      border-radius: .6rem;
+    }
+    .file-card .fname {
+      font-size: .76rem;
+      font-weight: 500;
+      color: #e2e8f0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: .2rem;
+    }
+    .file-card .fmeta {
+      font-size: .68rem;
+      color: #64748b;
+    }
+    /* Hover action buttons */
+    .file-card .card-actions {
+      position: absolute;
+      top: .5rem; right: .5rem;
+      display: none;
+      gap: .25rem;
+    }
+    .file-card:hover .card-actions { display: flex; }
+    .card-btn {
+      width: 26px; height: 26px;
+      border-radius: .4rem;
+      background: rgba(0,0,0,.5);
+      border: 1px solid rgba(255,255,255,.1);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background .15s;
+      color: #94a3b8;
+    }
+    .card-btn:hover { background: rgba(99,102,241,.4); color: #fff; }
+
+    /* ── FAILŲ SĄRAŠAS (list view) ─────────────── */
+    #files-list { width: 100%; border-collapse: collapse; }
+    #files-list th {
+      text-align: left;
+      font-size: .72rem;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      padding: .4rem .75rem;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .list-row {
+      display: flex;
+      align-items: center;
+      padding: .5rem .75rem;
+      border-radius: .55rem;
+      cursor: pointer;
+      transition: background .15s;
+      gap: .75rem;
+    }
+    .list-row:hover  { background: rgba(255,255,255,.04); }
+    .list-row.selected { background: rgba(99,102,241,.12); }
+    .list-row .list-icon { width: 34px; height: 34px; border-radius: .5rem;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; flex-shrink: 0; }
+    .list-row .list-name { flex: 1; min-width: 0; }
+    .list-row .list-name span { font-size: .85rem; color: #e2e8f0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+    .list-row .list-name small { font-size: .7rem; color: #475569; }
+    .list-row .list-size { width: 80px; font-size: .78rem; color: #64748b; text-align: right; }
+    .list-row .list-date { width: 120px; font-size: .78rem; color: #64748b; text-align: right; }
+    .list-row .list-actions { width: 80px; display: flex; justify-content: flex-end; gap: .25rem; }
+
+    /* ── MYGTUKŲ STILIAI ────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .42rem .9rem;
+      border-radius: .55rem;
+      font-size: .82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+      border: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg,#6366f1,#8b5cf6);
+      color: #fff;
+      box-shadow: 0 2px 12px rgba(99,102,241,.3);
+    }
+    .btn-primary:hover { filter: brightness(1.12); box-shadow: 0 4px 20px rgba(99,102,241,.45); }
+    .btn-ghost {
+      background: rgba(255,255,255,.05);
+      color: #94a3b8;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.09); color: #e2e8f0; }
+    .btn-danger {
+      background: rgba(239,68,68,.12);
+      color: #f87171;
+      border: 1px solid rgba(239,68,68,.2);
+    }
+    .btn-danger:hover { background: rgba(239,68,68,.2); }
+    .btn-icon {
+      width: 32px; height: 32px;
+      padding: 0;
+      justify-content: center;
+      background: rgba(255,255,255,.05);
+      color: #94a3b8;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: .55rem;
+    }
+    .btn-icon:hover { background: rgba(255,255,255,.09); color: #e2e8f0; }
+    .btn-icon.active { background: rgba(99,102,241,.2); color: #a78bfa; border-color: rgba(99,102,241,.3); }
+
+    /* ── STORAGE BAR ────────────────────────────── */
+    .storage-bar-bg {
+      height: 3px;
+      background: rgba(255,255,255,.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .storage-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg,#6366f1,#8b5cf6);
+      border-radius: 2px;
+      transition: width .6s ease;
+    }
+
+    /* ── UPLOAD PROGRESS PANEL ──────────────────── */
+    #upload-panel {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      width: 300px;
+      background: #0f0f28;
+      border: 1px solid rgba(99,102,241,.25);
+      border-radius: 1rem;
+      z-index: 60;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      display: none;
+    }
+    #upload-panel.visible { display: block; }
+    .upload-item { padding: .65rem 1rem; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .upload-item:last-child { border-bottom: none; }
+    .upload-progress-bar {
+      height: 3px;
+      background: rgba(255,255,255,.06);
+      border-radius: 2px;
+      margin-top: .4rem;
+      overflow: hidden;
+    }
+    .upload-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg,#6366f1,#22c55e);
+      transition: width .3s ease;
+    }
+
+    /* ── DRAG OVERLAY ───────────────────────────── */
+    #drag-overlay {
+      position: fixed; inset: 0;
+      background: rgba(99,102,241,.08);
+      border: 3px dashed rgba(99,102,241,.5);
+      border-radius: 1rem;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      font-size: 1.4rem;
+      color: #a78bfa;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
+    }
+    #drag-overlay.visible { display: flex; }
+
+    /* ── CONTEXT MENU ───────────────────────────── */
+    #ctx-menu {
+      position: fixed;
+      background: #0f0f2a;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: .75rem;
+      padding: .4rem;
+      z-index: 80;
+      min-width: 180px;
+      box-shadow: 0 16px 48px rgba(0,0,0,.6);
+      display: none;
+    }
+    #ctx-menu.visible { display: block; }
+    .ctx-item {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .5rem .8rem;
+      border-radius: .5rem;
+      font-size: .82rem;
+      cursor: pointer;
+      color: #94a3b8;
+      transition: background .12s, color .12s;
+    }
+    .ctx-item:hover { background: rgba(255,255,255,.07); color: #e2e8f0; }
+    .ctx-item.danger { color: #f87171; }
+    .ctx-item.danger:hover { background: rgba(239,68,68,.12); }
+    .ctx-divider { height: 1px; background: rgba(255,255,255,.06); margin: .3rem 0; }
+
+    /* ── MODALAI ────────────────────────────────── */
+    .modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(5,5,15,.75);
+      backdrop-filter: blur(6px);
+      z-index: 70;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .modal-bg.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: #0d0d22;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 1.25rem;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+      transform: scale(.94);
+      transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+      box-shadow: 0 24px 72px rgba(0,0,0,.6);
+    }
+    .modal-bg.open .modal-box { transform: scale(1); }
+
+    .input-field {
+      width: 100%;
+      background: rgba(255,255,255,.05);
+      border: 1.5px solid rgba(255,255,255,.1);
+      border-radius: .65rem;
+      color: #f1f5f9;
+      padding: .75rem 1rem;
+      font-size: .9rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      font-family: inherit;
+    }
+    .input-field::placeholder { color: rgba(255,255,255,.25); }
+    .input-field:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.18);
+    }
+
+    /* ── PREVIEW MODALAS ────────────────────────── */
+    #preview-modal .modal-box {
+      max-width: 880px;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    #preview-content {
+      flex: 1; overflow: auto;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 200px;
+    }
+    #preview-content img {
+      max-width: 100%; max-height: 70vh;
+      border-radius: .65rem;
+      object-fit: contain;
+    }
+    #preview-content iframe {
+      width: 100%; height: 65vh;
+      border: none; border-radius: .65rem;
+    }
+
+    /* ── SHARE MODAL ────────────────────────────── */
+    .share-url-box {
+      background: rgba(99,102,241,.08);
+      border: 1px solid rgba(99,102,241,.2);
+      border-radius: .65rem;
+      padding: .75rem 1rem;
+      font-size: .8rem;
+      color: #a78bfa;
+      word-break: break-all;
+    }
+
+    /* ── TOAST ──────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      display: flex; flex-direction: column; gap: .5rem;
+      align-items: center;
+      pointer-events: none;
+    }
+    .toast {
+      background: #1a1a3a;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: .75rem;
+      padding: .65rem 1.2rem;
+      font-size: .83rem;
+      color: #e2e8f0;
+      box-shadow: 0 8px 24px rgba(0,0,0,.4);
+      animation: toastIn .3s ease, toastOut .3s ease 2.5s forwards;
+      pointer-events: auto;
+      display: flex; align-items: center; gap: .5rem;
+    }
+    @keyframes toastIn  { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+    @keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateY(8px); } }
+
+    /* ── SPALVŲ PASIRINKIMAS ────────────────────── */
+    .color-dot {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      border: 2px solid transparent;
+    }
+    .color-dot:hover    { transform: scale(1.2); }
+    .color-dot.selected { border-color: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,.3); }
+
+    /* ── BREADCRUMB ─────────────────────────────── */
+    .bc-item {
+      font-size: .82rem; color: #64748b; cursor: pointer;
+      transition: color .15s;
+    }
+    .bc-item:hover { color: #a78bfa; }
+    .bc-item.current { color: #e2e8f0; font-weight: 500; cursor: default; }
+
+    /* ── TUŠČIA BŪSENA ──────────────────────────── */
+    #empty-state {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      flex-direction: column; gap: 1rem; color: #334155;
+      text-align: center;
+    }
+
+    /* ── SEARCH ─────────────────────────────────── */
+    #search-input {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: .6rem;
+      color: #e2e8f0;
+      padding: .38rem .85rem .38rem 2rem;
+      font-size: .82rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+      font-family: inherit;
+      width: 200px;
+    }
+    #search-input::placeholder { color: rgba(255,255,255,.25); }
+    #search-input:focus {
+      border-color: rgba(99,102,241,.5);
+      box-shadow: 0 0 0 2px rgba(99,102,241,.12);
+      width: 260px;
+    }
+
+    /* ── ANIMACIJOS ─────────────────────────────── */
+    @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+    .fade-in { animation: fadeIn .25s ease both; }
+
+    /* ── SKELETON LOADER ────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg,rgba(255,255,255,.04) 25%,rgba(255,255,255,.08) 50%,rgba(255,255,255,.04) 75%);
+      background-size: 200% auto;
+      animation: shimmer 1.4s linear infinite;
+      border-radius: .5rem;
+    }
+    @keyframes shimmer { to { background-position: -200% center; } }
+  </style>
+</head>
+<body>
+
+<!-- ================================================
+     TOP NAV
+================================================ -->
+<nav id="topnav">
+  <!-- Logo -->
+  <a href="/konradvault.html" class="flex items-center gap-2 mr-2 shrink-0">
+    <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600
+                flex items-center justify-center shadow-md shadow-indigo-500/30">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+        <rect x="3" y="11" width="18" height="11" rx="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+    <span class="font-bold text-white text-sm hidden sm:block">KonradVault</span>
+  </a>
+
+  <!-- Breadcrumb -->
+  <div id="breadcrumb" class="flex items-center gap-1 flex-1 min-w-0 overflow-hidden">
+    <span class="bc-item" onclick="navigateTo(null)">Saugykla</span>
+  </div>
+
+  <!-- Search -->
+  <div class="relative shrink-0 hidden md:block">
+    <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500 pointer-events-none"
+         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input id="search-input" type="text" placeholder="Ieškoti failų…"
+           oninput="onSearch(this.value)" />
+  </div>
+
+  <!-- Storage indikatorius -->
+  <div id="storage-widget" class="shrink-0 hidden lg:block text-right" style="min-width:120px;">
+    <div class="flex justify-between text-xs text-slate-500 mb-1">
+      <span id="storage-used-txt">…</span>
+      <span id="storage-total-txt">2 GB</span>
+    </div>
+    <div class="storage-bar-bg" style="width:120px;">
+      <div id="storage-bar" class="storage-bar-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Vartotojo meniu -->
+  <div class="flex items-center gap-1.5 shrink-0">
+    <!-- Upload mygtukas (mobile) -->
+    <button onclick="triggerUpload()" class="btn btn-primary md:hidden btn-icon"
+            title="Įkelti failą">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+      </svg>
+    </button>
+
+    <!-- Šiukšlinė -->
+    <button onclick="openTrash()" class="btn-icon btn" title="Šiukšlinė" id="trash-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14H6L5 6"/>
+        <path d="M10 11v6"/><path d="M14 11v6"/>
+        <path d="M9 6V4h6v2"/>
+      </svg>
+    </button>
+
+    <!-- Admin nuoroda (rodoma tik admin) -->
+    <a href="/admin.html" id="admin-link" class="btn-icon btn hidden" title="Admin">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M20 21a8 8 0 1 0-16 0"/>
+      </svg>
+    </a>
+
+    <!-- Avatar / atsijungimas -->
+    <div class="relative" id="user-menu-wrap">
+      <button onclick="toggleUserMenu()" class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg
+              bg-white/4 border border-white/8 hover:bg-white/7 transition text-sm">
+        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-violet-500
+                    flex items-center justify-center text-xs font-bold text-white"
+             id="avatar">?</div>
+        <span class="hidden sm:block text-slate-300 text-xs max-w-[80px] truncate"
+              id="username-display">…</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+
+      <div id="user-dropdown" class="hidden absolute right-0 top-full mt-1 w-44
+                                      bg-[#0f0f2a] border border-white/10 rounded-xl
+                                      shadow-xl z-50 overflow-hidden py-1">
+        <div class="px-3 py-2 text-xs text-slate-500 border-b border-white/6">
+          <div class="text-slate-300 font-medium truncate" id="dd-username">…</div>
+          <div id="dd-role">Vartotojas</div>
+        </div>
+        <button onclick="logout()" class="w-full text-left px-3 py-2 text-sm text-red-400
+                hover:bg-red-500/10 transition flex items-center gap-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          Atsijungti
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ================================================
+     PAGRINDINIS LAYOUT
+================================================ -->
+<div id="layout">
+
+  <!-- ===== SIDEBAR ===== -->
+  <aside id="sidebar">
+    <div id="sidebar-scroll">
+
+      <!-- Naujas aplankas + upload -->
+      <div class="flex gap-1.5 mb-3 px-1">
+        <button onclick="triggerUpload()"
+                class="btn btn-primary flex-1 text-xs py-2 justify-center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Įkelti
+        </button>
+        <button onclick="openNewFolderModal()"
+                class="btn btn-ghost text-xs py-2 px-3">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Root -->
+      <div class="nav-item active mb-0.5" id="root-nav" onclick="navigateTo(null)">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Visa saugykla
+      </div>
+
+      <!-- Aplankalų medis -->
+      <div id="folder-tree" class="mt-1 mb-2"></div>
+
+      <div class="h-px bg-white/5 my-3 mx-1"></div>
+
+      <!-- Šiukšlinė -->
+      <div class="nav-item" onclick="openTrash()">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14H6L5 6"/>
+        </svg>
+        Šiukšlinė
+      </div>
+
+      <!-- Storage info -->
+      <div class="mt-auto pt-4 px-1">
+        <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+          <span>Saugykla</span>
+          <span id="sidebar-storage-pct">…</span>
+        </div>
+        <div class="storage-bar-bg mb-1">
+          <div id="sidebar-storage-bar" class="storage-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="text-xs text-slate-600" id="sidebar-storage-txt">…</div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ===== PAGRINDINIS TURINYS ===== -->
+  <main id="main">
+
+    <!-- Toolbar -->
+    <div id="toolbar">
+      <!-- Kairė pusė: aplanko pavadinimas + failų skaičius -->
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <h1 class="font-semibold text-white text-sm truncate" id="folder-title">Visa saugykla</h1>
+        <span class="text-xs text-slate-600" id="file-count-badge"></span>
+      </div>
+
+      <!-- Dešinė pusė: view toggle + sort -->
+      <div class="flex items-center gap-1.5">
+
+        <!-- Sortavimas -->
+        <select id="sort-select" onchange="sortFiles(this.value)"
+                class="bg-white/4 border border-white/8 rounded-lg text-xs
+                       text-slate-400 px-2 py-1.5 outline-none cursor-pointer">
+          <option value="name">Pavadinimas</option>
+          <option value="date">Data</option>
+          <option value="size">Dydis</option>
+        </select>
+
+        <!-- Grid view -->
+        <button id="btn-grid" onclick="setView('grid')" class="btn-icon btn active" title="Tinklelis">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+          </svg>
+        </button>
+
+        <!-- List view -->
+        <button id="btn-list" onclick="setView('list')" class="btn-icon btn" title="Sąrašas">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+        </button>
+
+      </div>
+    </div>
+
+    <!-- Failų konteineris -->
+    <div id="files-container"
+         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)"
+         ondrop="onDrop(event)">
+
+      <!-- Aplankalų eilutė (gridas) -->
+      <div id="folders-row" class="mb-4 hidden">
+        <p class="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-2">Aplankalai</p>
+        <div id="folders-grid" class="grid gap-2"
+             style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))"></div>
+      </div>
+
+      <!-- Failų antraštė -->
+      <div id="files-header" class="hidden">
+        <p class="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-2">Failai</p>
+      </div>
+
+      <!-- Grid view -->
+      <div id="files-grid"></div>
+
+      <!-- List view -->
+      <div id="files-list-wrap" class="hidden">
+        <div class="flex text-xs font-semibold text-slate-600 uppercase tracking-widest
+                    px-3 py-1 mb-1">
+          <span class="flex-1">Pavadinimas</span>
+          <span class="w-20 text-right">Dydis</span>
+          <span class="w-28 text-right hidden md:block">Data</span>
+          <span class="w-20"></span>
+        </div>
+        <div id="files-list"></div>
+      </div>
+
+      <!-- Tuščia būsena -->
+      <div id="empty-state" class="hidden">
+        <div style="font-size:3.5rem">📂</div>
+        <p class="text-slate-400 font-medium">Čia dar nieko nėra</p>
+        <p class="text-slate-600 text-sm" id="empty-hint">Įkelkite pirmą failą arba sukurkite aplanką</p>
+        <button onclick="triggerUpload()" class="btn btn-primary mt-2">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          Įkelti failą
+        </button>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ================================================
+     DRAG & DROP OVERLAY
+================================================ -->
+<div id="drag-overlay">
+  <div style="font-size:4rem">📤</div>
+  <p>Numeskite failus čia</p>
+  <p style="font-size:.9rem;color:#6366f1;font-weight:400">Failai bus įkelti į dabartinį aplanką</p>
+</div>
+
+<!-- ================================================
+     UPLOAD PROGRESS PANEL
+================================================ -->
+<div id="upload-panel">
+  <div class="flex items-center justify-between px-3 py-2.5 border-b border-white/6">
+    <span class="text-xs font-semibold text-slate-300">Įkėlimas</span>
+    <button onclick="hideUploadPanel()" class="text-slate-500 hover:text-white text-lg leading-none">×</button>
+  </div>
+  <div id="upload-items" style="max-height:200px;overflow-y:auto;"></div>
+</div>
+
+<!-- ================================================
+     CONTEXT MENU
+================================================ -->
+<div id="ctx-menu">
+  <div id="ctx-preview" class="ctx-item" onclick="ctxAction('preview')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    Peržiūrėti
+  </div>
+  <div class="ctx-item" onclick="ctxAction('download')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Atsisiųsti
+  </div>
+  <div class="ctx-item" onclick="ctxAction('share')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    Dalintis
+  </div>
+  <div class="ctx-item" onclick="ctxAction('rename')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+    Pervadinti
+  </div>
+  <div class="ctx-divider"></div>
+  <div class="ctx-item danger" onclick="ctxAction('delete')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+    Perkelti į šiukšlinę
+  </div>
+</div>
+
+<!-- ================================================
+     MODALAS: NAUJAS APLANKAS
+================================================ -->
+<div id="modal-folder" class="modal-bg" onclick="if(event.target===this)closeModal('modal-folder')">
+  <div class="modal-box">
+    <h3 class="font-bold text-white text-lg mb-4">Naujas aplankas</h3>
+    <div class="mb-4">
+      <label class="block text-slate-400 text-sm mb-1.5">Pavadinimas</label>
+      <input id="folder-name-input" class="input-field" placeholder="pvz. Dokumentai"
+             maxlength="255" onkeydown="if(event.key==='Enter') createFolder()" />
+    </div>
+    <div class="mb-5">
+      <label class="block text-slate-400 text-sm mb-2">Spalva</label>
+      <div class="flex gap-2 flex-wrap" id="color-picker">
+        <div class="color-dot selected" style="background:#3B82F6" data-color="#3B82F6" onclick="selectColor('#3B82F6')"></div>
+        <div class="color-dot" style="background:#22C55E" data-color="#22C55E" onclick="selectColor('#22C55E')"></div>
+        <div class="color-dot" style="background:#EF4444" data-color="#EF4444" onclick="selectColor('#EF4444')"></div>
+        <div class="color-dot" style="background:#EAB308" data-color="#EAB308" onclick="selectColor('#EAB308')"></div>
+        <div class="color-dot" style="background:#F97316" data-color="#F97316" onclick="selectColor('#F97316')"></div>
+        <div class="color-dot" style="background:#8B5CF6" data-color="#8B5CF6" onclick="selectColor('#8B5CF6')"></div>
+        <div class="color-dot" style="background:#EC4899" data-color="#EC4899" onclick="selectColor('#EC4899')"></div>
+        <div class="color-dot" style="background:#6B7280" data-color="#6B7280" onclick="selectColor('#6B7280')"></div>
+      </div>
+    </div>
+    <div class="flex gap-2 justify-end">
+      <button onclick="closeModal('modal-folder')" class="btn btn-ghost">Atšaukti</button>
+      <button onclick="createFolder()" class="btn btn-primary">Sukurti</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================
+     MODALAS: PERVADINTI
+================================================ -->
+<div id="modal-rename" class="modal-bg" onclick="if(event.target===this)closeModal('modal-rename')">
+  <div class="modal-box">
+    <h3 class="font-bold text-white text-lg mb-4">Pervadinti</h3>
+    <input id="rename-input" class="input-field mb-5" maxlength="500"
+           onkeydown="if(event.key==='Enter') doRename()" />
+    <div class="flex gap-2 justify-end">
+      <button onclick="closeModal('modal-rename')" class="btn btn-ghost">Atšaukti</button>
+      <button onclick="doRename()" class="btn btn-primary">Išsaugoti</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================
+     MODALAS: SHARE
+================================================ -->
+<div id="modal-share" class="modal-bg" onclick="if(event.target===this)closeModal('modal-share')">
+  <div class="modal-box">
+    <h3 class="font-bold text-white text-lg mb-1">Dalintis failu</h3>
+    <p class="text-slate-400 text-sm mb-4" id="share-filename">…</p>
+
+    <div id="share-create-form">
+      <label class="block text-slate-400 text-sm mb-1.5">Maks. atsisiuntimų skaičius</label>
+      <div class="flex gap-2 mb-5">
+        <input id="share-max" type="number" min="1" max="1000" value="10"
+               class="input-field" style="width:100px;" />
+        <div class="flex gap-1">
+          <button onclick="document.getElementById('share-max').value=1"
+                  class="btn btn-ghost text-xs px-2">1x</button>
+          <button onclick="document.getElementById('share-max').value=10"
+                  class="btn btn-ghost text-xs px-2">10x</button>
+          <button onclick="document.getElementById('share-max').value=100"
+                  class="btn btn-ghost text-xs px-2">100x</button>
+        </div>
+      </div>
+      <button onclick="createShareLink()" class="btn btn-primary w-full justify-center">
+        Sukurti nuorodą
+      </button>
+    </div>
+
+    <div id="share-result" class="hidden mt-4">
+      <label class="block text-slate-400 text-sm mb-1.5">Dalinimosi nuoroda</label>
+      <div class="share-url-box mb-3 cursor-pointer" id="share-url-display"
+           onclick="copyShareUrl()">
+        Spustelėkite nukopijuoti
+      </div>
+      <button onclick="copyShareUrl()" class="btn btn-ghost w-full justify-center text-sm">
+        📋 Kopijuoti į iškarpinę
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================
+     MODALAS: PREVIEW
+================================================ -->
+<div id="preview-modal" class="modal-bg" onclick="if(event.target===this)closeModal('preview-modal')">
+  <div class="modal-box" style="max-width:900px;">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-white text-base truncate" id="preview-title">…</h3>
+      <div class="flex gap-2 shrink-0">
+        <button onclick="downloadPreviewFile()" class="btn btn-ghost text-xs">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Atsisiųsti
+        </button>
+        <button onclick="closeModal('preview-modal')" class="btn-icon btn">✕</button>
+      </div>
+    </div>
+    <div id="preview-content">
+      <div class="text-slate-500">Kraunama…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================
+     MODALAS: ŠIUKŠLINĖ
+================================================ -->
+<div id="modal-trash" class="modal-bg" onclick="if(event.target===this)closeModal('modal-trash')">
+  <div class="modal-box" style="max-width:560px;">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-bold text-white text-lg">🗑️ Šiukšlinė</h3>
+      <button onclick="emptyTrash()" class="btn btn-danger text-xs" id="empty-trash-btn" style="display:none;">
+        Išvalyti viską
+      </button>
+    </div>
+    <div id="trash-list" style="max-height:400px;overflow-y:auto;" class="space-y-1"></div>
+    <div id="trash-empty-state" class="py-8 text-center text-slate-600 text-sm hidden">
+      Šiukšlinė tuščia 🎉
+    </div>
+    <div class="flex justify-end mt-4">
+      <button onclick="closeModal('modal-trash')" class="btn btn-ghost text-sm">Uždaryti</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================
+     HIDDEN FILE INPUT
+================================================ -->
+<input type="file" id="file-input" multiple style="display:none"
+       onchange="uploadFiles(this.files)" />
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ================================================
+     JAVASCRIPT
+================================================ -->
+<script>
+/* ====================================================
+   BŪSENA
+==================================================== */
+const S = {
+  user: null,
+  currentFolderId: null,
+  breadcrumb: [],          // [{id,name}]
+  folderTree: [],          // iš /api/folders/tree
+  files: [],               // dabartinio aplanko failai
+  subfolders: [],          // dabartinio aplanko aplankalai
+  view: 'grid',            // 'grid' | 'list'
+  sort: 'name',
+  ctxFile: null,           // dešinio paspaudimo taikinys
+  renameTarget: null,      // {type:'file'|'folder', id, name}
+  shareFileId: null,
+  shareUrl: null,
+  previewFileId: null,
+  selectedColor: '#3B82F6',
+  uploads: {},             // {uid: {name,pct,status}}
+  searchQuery: '',
+  trashItems: [],
+};
+
+/* ====================================================
+   API HELPERI
+==================================================== */
+async function api(method, path, body, signal) {
+  const opts = {
+    method,
+    headers: {},
+    credentials: 'include',
+    signal,
+  };
+  if (body instanceof FormData) {
+    opts.body = body;
+  } else if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch('/api' + path, opts);
+  if (r.status === 401) { window.location.href = '/konradvault.html'; throw new Error('401'); }
+  return r;
+}
+
+async function apiJson(method, path, body) {
+  const r = await api(method, path, body);
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({}));
+    throw new Error(e.detail || 'Klaida');
+  }
+  return r.json();
+}
+
+/* ====================================================
+   INICIALIZACIJA
+==================================================== */
+async function init() {
+  try {
+    S.user = await apiJson('GET', '/auth/me');
+  } catch(e) {
+    window.location.href = '/konradvault.html';
+    return;
+  }
+
+  // Atnaujinti UI
+  const initials = S.user.username.slice(0,2).toUpperCase();
+  document.getElementById('avatar').textContent = initials;
+  document.getElementById('username-display').textContent = S.user.username;
+  document.getElementById('dd-username').textContent = S.user.username;
+  document.getElementById('dd-role').textContent = S.user.is_admin ? 'Administratorius' : 'Vartotojas';
+  if (S.user.is_admin) document.getElementById('admin-link').classList.remove('hidden');
+
+  updateStorageUI(S.user.storage_used_bytes, 2 * 1024 * 1024 * 1024);
+
+  await loadFolderTree();
+  await loadFiles(null);
+}
+
+/* ====================================================
+   STORAGE UI
+==================================================== */
+function updateStorageUI(usedBytes, totalBytes) {
+  const usedMB = (usedBytes / 1024 / 1024).toFixed(0);
+  const totalGB = (totalBytes / 1024 / 1024 / 1024).toFixed(0);
+  const pct = Math.min(100, Math.round(usedBytes / totalBytes * 100));
+
+  document.getElementById('storage-used-txt').textContent = usedMB + ' MB';
+  document.getElementById('storage-total-txt').textContent = totalGB + ' GB';
+  document.getElementById('storage-bar').style.width = pct + '%';
+  document.getElementById('sidebar-storage-pct').textContent = pct + '%';
+  document.getElementById('sidebar-storage-bar').style.width = pct + '%';
+  document.getElementById('sidebar-storage-txt').textContent =
+    `${usedMB} MB iš ${totalGB} GB`;
+
+  const bar = document.getElementById('storage-bar');
+  const sbar = document.getElementById('sidebar-storage-bar');
+  const color = pct >= 90 ? '#ef4444' : pct >= 70 ? '#f97316' : undefined;
+  if (color) { bar.style.background = sbar.style.background = color; }
+}
+
+/* ====================================================
+   APLANKALŲ MEDIS
+==================================================== */
+async function loadFolderTree() {
+  try {
+    S.folderTree = await apiJson('GET', '/folders/tree');
+    renderFolderTree();
+  } catch(e) {}
+}
+
+function renderFolderTree() {
+  const el = document.getElementById('folder-tree');
+  el.innerHTML = '';
+  if (!S.folderTree.length) return;
+  S.folderTree.forEach(f => el.appendChild(buildTreeNode(f, 0)));
+}
+
+function buildTreeNode(folder, depth) {
+  const wrap = document.createElement('div');
+  wrap.className = 'folder-tree-item';
+
+  const row = document.createElement('div');
+  row.className = 'folder-tree-row';
+  row.style.paddingLeft = (0.6 + depth * 0.9) + 'rem';
+  if (folder.id === S.currentFolderId) row.classList.add('active');
+
+  const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;
+    background:${folder.color};flex-shrink:0;margin-right:2px;"></span>`;
+  const arrow = folder.children && folder.children.length
+    ? `<svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+         style="flex-shrink:0;transition:transform .2s;">
+         <polyline points="9 18 15 12 9 6"/></svg>`
+    : `<span style="width:10px;display:inline-block;flex-shrink:0;"></span>`;
+
+  row.innerHTML = `${arrow}${dot}
+    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;">
+      ${esc(folder.name)}</span>
+    ${folder.file_count ? `<span style="font-size:.65rem;color:#475569;margin-left:2px;">${folder.file_count}</span>` : ''}`;
+
+  let open = false;
+  const children = document.createElement('div');
+  children.className = 'folder-children';
+  children.style.display = 'none';
+
+  if (folder.children && folder.children.length) {
+    folder.children.forEach(c => children.appendChild(buildTreeNode(c, depth + 1)));
+  }
+
+  row.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (folder.children && folder.children.length) {
+      open = !open;
+      children.style.display = open ? 'block' : 'none';
+      const ch = row.querySelector('.chevron');
+      if (ch) ch.style.transform = open ? 'rotate(90deg)' : '';
+    }
+    navigateTo(folder.id, folder.name);
+  });
+
+  row.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showFolderContextMenu(e, folder);
+  });
+
+  wrap.appendChild(row);
+  if (folder.children && folder.children.length) wrap.appendChild(children);
+  return wrap;
+}
+
+/* ====================================================
+   FAILŲ KROVIMAS
+==================================================== */
+async function loadFiles(folderId) {
+  S.currentFolderId = folderId;
+
+  // Atnaujinti aktyvią navbar eilutę
+  document.getElementById('root-nav').classList.toggle('active', folderId === null);
+  renderFolderTree();
+
+  // Toolbar pavadinimas
+  const title = folderId === null ? 'Visa saugykla'
+    : S.breadcrumb.find(b => b.id === folderId)?.name || 'Aplankas';
+  document.getElementById('folder-title').textContent = title;
+
+  showSkeleton();
+
+  try {
+    // SVARBU: jei folderId === null (root lygis), NESIUNČIAME query param –
+    // backend laukia Optional[int], o tuščia eilutė gali sukelti 422 klaidą.
+    const filesUrl   = '/files'   + (folderId !== null ? `?folder_id=${folderId}`  : '');
+    const foldersUrl = '/folders' + (folderId !== null ? `?parent_id=${folderId}` : '');
+    const [filesResp, foldersResp] = await Promise.all([
+      apiJson('GET', filesUrl),
+      apiJson('GET', foldersUrl),
+    ]);
+
+    S.files = filesResp.files || filesResp;
+    S.subfolders = foldersResp;
+    renderAll();
+  } catch(e) {
+    if (e.message === '401') return;
+    showToast('❌ Nepavyko įkelti failų', 'error');
+  }
+}
+
+function renderAll() {
+  const query = S.searchQuery.toLowerCase();
+  let files = query
+    ? S.files.filter(f => f.filename.toLowerCase().includes(query) ||
+                          f.original_filename?.toLowerCase().includes(query))
+    : [...S.files];
+
+  // Sortavimas
+  files.sort((a, b) => {
+    if (S.sort === 'name') return fname(a).localeCompare(fname(b));
+    if (S.sort === 'size') return (b.size_bytes || 0) - (a.size_bytes || 0);
+    if (S.sort === 'date') return new Date(b.created_at) - new Date(a.created_at);
+    return 0;
+  });
+
+  const total = (S.subfolders?.length || 0) + files.length;
+  document.getElementById('file-count-badge').textContent =
+    total ? `${total} elementas(-ų)` : '';
+
+  // Aplankalai
+  const frow = document.getElementById('folders-row');
+  const fgrid = document.getElementById('folders-grid');
+  fgrid.innerHTML = '';
+
+  const visibleFolders = S.subfolders?.filter(f =>
+    !query || f.name.toLowerCase().includes(query)) || [];
+
+  if (visibleFolders.length) {
+    frow.classList.remove('hidden');
+    visibleFolders.forEach(f => fgrid.appendChild(makeFolderCard(f)));
+  } else {
+    frow.classList.add('hidden');
+  }
+
+  // Failai
+  document.getElementById('files-header').classList.toggle('hidden', files.length === 0);
+  document.getElementById('files-grid').innerHTML = '';
+  document.getElementById('files-list').innerHTML = '';
+
+  if (S.view === 'grid') {
+    document.getElementById('files-list-wrap').classList.add('hidden');
+    document.getElementById('files-grid').classList.remove('hidden');
+    files.forEach(f => document.getElementById('files-grid').appendChild(makeFileCard(f)));
+  } else {
+    document.getElementById('files-grid').classList.add('hidden');
+    document.getElementById('files-list-wrap').classList.remove('hidden');
+    files.forEach(f => document.getElementById('files-list').appendChild(makeFileListRow(f)));
+  }
+
+  const isEmpty = visibleFolders.length === 0 && files.length === 0;
+  document.getElementById('empty-state').classList.toggle('hidden', !isEmpty);
+  if (isEmpty) {
+    document.getElementById('empty-hint').textContent = query
+      ? 'Pagal šią paiešką nieko nerasta'
+      : S.currentFolderId !== null ? 'Šis aplankas tuščias' : 'Įkelkite pirmą failą';
+  }
+}
+
+function showSkeleton() {
+  document.getElementById('files-grid').innerHTML = Array(8).fill(0).map(() => `
+    <div class="skeleton" style="aspect-ratio:1;border-radius:.9rem;"></div>
+  `).join('');
+  document.getElementById('files-header').classList.add('hidden');
+  document.getElementById('folders-row').classList.add('hidden');
+  document.getElementById('empty-state').classList.add('hidden');
+}
+
+/* ====================================================
+   FAILŲ KORTELĖS
+==================================================== */
+function fname(f) { return f.filename || f.original_filename || '?'; }
+
+function fileIcon(mime) {
+  if (!mime) return { emoji: '📎', bg: '#1e293b' };
+  if (mime.startsWith('image/'))      return { emoji: '🖼️',  bg: '#052e16' };
+  if (mime === 'application/pdf')     return { emoji: '📕',  bg: '#2d0a0a' };
+  if (mime.startsWith('video/'))      return { emoji: '🎬',  bg: '#0f0a2e' };
+  if (mime.startsWith('audio/'))      return { emoji: '🎵',  bg: '#0a1f0a' };
+  if (mime.includes('zip') || mime.includes('archive') || mime.includes('rar'))
+                                      return { emoji: '📦',  bg: '#1f1205' };
+  if (mime.startsWith('text/') || mime.includes('json') || mime.includes('xml'))
+                                      return { emoji: '📝',  bg: '#0d1626' };
+  if (mime.includes('word') || mime.includes('document'))
+                                      return { emoji: '📄',  bg: '#0a1f2e' };
+  if (mime.includes('spreadsheet') || mime.includes('excel'))
+                                      return { emoji: '📊',  bg: '#0a1f0a' };
+  return { emoji: '📎', bg: '#1e293b' };
+}
+
+function sizeStr(b) {
+  if (!b) return '0 B';
+  if (b < 1024) return b + ' B';
+  if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  if (b < 1024*1024*1024) return (b/1024/1024).toFixed(1) + ' MB';
+  return (b/1024/1024/1024).toFixed(2) + ' GB';
+}
+
+function dateStr(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('lt-LT', {year:'2-digit',month:'2-digit',day:'2-digit'});
+}
+
+function isPreviewable(mime) {
+  return mime && (mime.startsWith('image/') || mime === 'application/pdf');
+}
+
+/* Šie failų objektai saugomi by-id; mygtukai ima ID iš data-id atributo
+   (apsauga nuo XSS specialių simbolių pavadinimuose). */
+function _findFileById(id) {
+  return S.files.find(x => String(x.id) === String(id));
+}
+
+function makeFileCard(f) {
+  const card = document.createElement('div');
+  card.className = 'file-card fade-in';
+  card.dataset.id = f.id;
+
+  const { emoji, bg } = fileIcon(f.mime_type);
+  const isImg = f.mime_type && f.mime_type.startsWith('image/');
+
+  let thumbHtml = `<div class="thumb" style="background:${bg};">`;
+  if (isImg) {
+    // Thumbnail endpoint'as grąžina mažą JPEG (~10-50KB), ne pilną failą.
+    // Jei thumbnail'as dar nesugeneruotas (senas failas) → 404 → fallback į emoji.
+    thumbHtml += `<img src="/api/files/${f.id}/thumbnail"
+      onerror="this.parentElement.innerHTML='🖼️'" loading="lazy" alt="" />`;
+  } else {
+    thumbHtml += emoji;
+  }
+  thumbHtml += '</div>';
+
+  // Visi mygtukai naudoja data-action + data-id (saugu nuo XSS)
+  card.innerHTML = `
+    ${thumbHtml}
+    <div class="fname" title="${esc(fname(f))}">${esc(fname(f))}</div>
+    <div class="fmeta">${sizeStr(f.size_bytes)}</div>
+    <div class="card-actions">
+      ${isPreviewable(f.mime_type) ? `
+        <div class="card-btn" data-action="preview" data-id="${f.id}" title="Peržiūrėti">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>` : ''}
+      <div class="card-btn" data-action="download" data-id="${f.id}" title="Atsisiųsti">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
+    </div>`;
+
+  // Event delegation – išvengiame inline JS su user input
+  card.querySelectorAll('.card-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+      const id = parseInt(btn.dataset.id, 10);
+      const file = _findFileById(id);
+      if (!file) return;
+      if (action === 'preview')  previewFile(id, fname(file));
+      if (action === 'download') downloadFile(id, fname(file));
+    });
+  });
+
+  card.addEventListener('contextmenu', e => { e.preventDefault(); showFileCtxMenu(e, f); });
+  card.addEventListener('dblclick', () => {
+    if (isPreviewable(f.mime_type)) previewFile(f.id, fname(f));
+    else downloadFile(f.id, fname(f));
+  });
+
+  return card;
+}
+
+function makeFileListRow(f) {
+  const row = document.createElement('div');
+  row.className = 'list-row fade-in';
+  row.dataset.id = f.id;
+  const { emoji, bg } = fileIcon(f.mime_type);
+
+  row.innerHTML = `
+    <div class="list-icon" style="background:${bg};">${emoji}</div>
+    <div class="list-name">
+      <span title="${esc(fname(f))}">${esc(fname(f))}</span>
+      <small>${esc(f.mime_type || 'failas')}</small>
+    </div>
+    <div class="list-size">${sizeStr(f.size_bytes)}</div>
+    <div class="list-date hidden md:block">${dateStr(f.created_at)}</div>
+    <div class="list-actions">
+      ${isPreviewable(f.mime_type) ? `
+        <div class="card-btn" data-action="preview" data-id="${f.id}" title="Peržiūrėti">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+        </div>` : ''}
+      <div class="card-btn" data-action="download" data-id="${f.id}" title="Atsisiųsti">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
+      <div class="card-btn" data-action="more" data-id="${f.id}" title="Daugiau">⋯</div>
+    </div>`;
+
+  // Event delegation
+  row.querySelectorAll('.card-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const action = btn.dataset.action;
+      const id = parseInt(btn.dataset.id, 10);
+      const file = _findFileById(id);
+      if (!file) return;
+      if (action === 'preview')  previewFile(id, fname(file));
+      if (action === 'download') downloadFile(id, fname(file));
+      if (action === 'more')     showFileCtxMenu(e, file);
+    });
+  });
+
+  row.addEventListener('contextmenu', e => { e.preventDefault(); showFileCtxMenu(e, f); });
+  return row;
+}
+
+function makeFolderCard(folder) {
+  const card = document.createElement('div');
+  card.className = 'file-card fade-in';
+  card.innerHTML = `
+    <div class="thumb" style="background:${folder.color}22;">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="${folder.color}" opacity=".8">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <div class="fname">${esc(folder.name)}</div>
+    <div class="fmeta">${folder.file_count || 0} failas(-ų)</div>`;
+  card.addEventListener('dblclick', () => {
+    S.breadcrumb.push({ id: folder.id, name: folder.name });
+    navigateTo(folder.id, folder.name);
+  });
+  card.addEventListener('click', () => {
+    S.breadcrumb.push({ id: folder.id, name: folder.name });
+    navigateTo(folder.id, folder.name);
+  });
+  card.addEventListener('contextmenu', e => { e.preventDefault(); showFolderContextMenu(e, folder); });
+  return card;
+}
+
+/* ====================================================
+   NAVIGACIJA
+==================================================== */
+function navigateTo(folderId, folderName) {
+  if (folderId === null) {
+    S.breadcrumb = [];
+  } else {
+    const idx = S.breadcrumb.findIndex(b => b.id === folderId);
+    if (idx === -1) {
+      if (folderName) S.breadcrumb.push({ id: folderId, name: folderName });
+    } else {
+      S.breadcrumb = S.breadcrumb.slice(0, idx + 1);
+    }
+  }
+  renderBreadcrumb();
+  loadFiles(folderId);
+}
+
+function renderBreadcrumb() {
+  const el = document.getElementById('breadcrumb');
+  el.innerHTML = '';
+
+  const root = document.createElement('span');
+  root.className = 'bc-item';
+  root.textContent = 'Saugykla';
+  root.onclick = () => navigateTo(null);
+  el.appendChild(root);
+
+  S.breadcrumb.forEach((b, i) => {
+    const sep = document.createElement('span');
+    sep.className = 'text-slate-700 mx-1 text-xs';
+    sep.textContent = '/';
+    el.appendChild(sep);
+
+    const item = document.createElement('span');
+    item.className = 'bc-item' + (i === S.breadcrumb.length - 1 ? ' current' : '');
+    item.textContent = b.name;
+    if (i < S.breadcrumb.length - 1) item.onclick = () => navigateTo(b.id, b.name);
+    el.appendChild(item);
+  });
+}
+
+/* ====================================================
+   VIEW TOGGLE
+==================================================== */
+function setView(v) {
+  S.view = v;
+  document.getElementById('btn-grid').classList.toggle('active', v === 'grid');
+  document.getElementById('btn-list').classList.toggle('active', v === 'list');
+  renderAll();
+}
+
+function sortFiles(v) { S.sort = v; renderAll(); }
+
+/* ====================================================
+   UPLOAD
+==================================================== */
+function triggerUpload() { document.getElementById('file-input').click(); }
+
+async function uploadFiles(files) {
+  if (!files || !files.length) return;
+  const panel = document.getElementById('upload-panel');
+  const items = document.getElementById('upload-items');
+  panel.classList.add('visible');
+
+  for (const file of files) {
+    const uid = Math.random().toString(36).slice(2);
+    const itemEl = document.createElement('div');
+    itemEl.className = 'upload-item';
+    itemEl.id = 'upl-' + uid;
+    itemEl.innerHTML = `
+      <div class="flex justify-between text-xs mb-1">
+        <span class="text-slate-300 truncate max-w-[200px]" title="${esc(file.name)}">${esc(file.name)}</span>
+        <span class="text-slate-500" id="upct-${uid}">0%</span>
+      </div>
+      <div class="upload-progress-bar">
+        <div class="upload-progress-fill" id="upbar-${uid}" style="width:0%"></div>
+      </div>`;
+    items.appendChild(itemEl);
+
+    await uploadSingle(file, uid);
+  }
+
+  // Perkrauname failų sąrašą
+  await refreshUser();
+  await loadFiles(S.currentFolderId);
+}
+
+function uploadSingle(file, uid) {
+  return new Promise(resolve => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (S.currentFolderId !== null) fd.append('folder_id', S.currentFolderId);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/files/upload');
+    xhr.withCredentials = true;
+
+    xhr.upload.onprogress = e => {
+      const pct = Math.round(e.loaded / e.total * 100);
+      document.getElementById('upbar-' + uid).style.width = pct + '%';
+      document.getElementById('upct-' + uid).textContent = pct + '%';
+    };
+
+    xhr.onload = () => {
+      const bar   = document.getElementById('upbar-' + uid);
+      const label = document.getElementById('upct-' + uid);
+      if (xhr.status === 201 || xhr.status === 200) {
+        bar.style.background = '#22c55e';
+        label.textContent = '✓';
+        showToast(`✅ ${file.name} įkeltas`);
+      } else {
+        bar.style.background = '#ef4444';
+        label.textContent = '✗';
+        try {
+          const err = JSON.parse(xhr.responseText);
+          showToast(`❌ ${err.detail || 'Klaida'}`, 'error');
+        } catch(e) {
+          showToast('❌ Įkėlimo klaida', 'error');
+        }
+      }
+      setTimeout(() => document.getElementById('upl-' + uid)?.remove(), 3000);
+      setTimeout(() => {
+        if (!document.getElementById('upload-items').children.length)
+          hideUploadPanel();
+      }, 3200);
+      resolve();
+    };
+    xhr.onerror = () => { showToast('❌ Tinklo klaida', 'error'); resolve(); };
+    xhr.send(fd);
+  });
+}
+
+function hideUploadPanel() {
+  document.getElementById('upload-panel').classList.remove('visible');
+  document.getElementById('upload-items').innerHTML = '';
+}
+
+/* ====================================================
+   DRAG & DROP
+==================================================== */
+let dragCounter = 0;
+function onDragOver(e) {
+  e.preventDefault(); e.stopPropagation();
+  if (dragCounter === 0) document.getElementById('drag-overlay').classList.add('visible');
+  dragCounter++;
+}
+function onDragLeave(e) {
+  e.preventDefault(); e.stopPropagation();
+  dragCounter--;
+  if (dragCounter <= 0) { dragCounter = 0; document.getElementById('drag-overlay').classList.remove('visible'); }
+}
+function onDrop(e) {
+  e.preventDefault(); e.stopPropagation();
+  dragCounter = 0;
+  document.getElementById('drag-overlay').classList.remove('visible');
+  if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+}
+
+// Neleisti defaultiniam drag naršyklėje
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop',     e => e.preventDefault());
+
+/* ====================================================
+   DOWNLOAD & PREVIEW
+==================================================== */
+function downloadFile(id, name) {
+  const a = document.createElement('a');
+  a.href = `/api/files/${id}/download`;
+  a.download = name;
+  a.click();
+}
+
+async function previewFile(id, name) {
+  S.previewFileId = id;
+  document.getElementById('preview-title').textContent = name;
+  document.getElementById('preview-content').innerHTML =
+    '<div class="text-slate-500 text-sm">Kraunama…</div>';
+  openModal('preview-modal');
+
+  // Randame failą ir tikriname MIME
+  const f = S.files.find(x => x.id === id);
+  const mime = f?.mime_type || '';
+
+  const url = `/api/files/${id}/preview`;
+  if (mime.startsWith('image/')) {
+    document.getElementById('preview-content').innerHTML =
+      `<img src="${url}" alt="${esc(name)}" />`;
+  } else if (mime === 'application/pdf') {
+    document.getElementById('preview-content').innerHTML =
+      `<iframe src="${url}" title="${esc(name)}"></iframe>`;
+  } else {
+    const ct = document.getElementById('preview-content');
+    ct.innerHTML = `
+      <div class="text-center py-8">
+        <div style="font-size:4rem;margin-bottom:1rem;">📎</div>
+        <p class="text-slate-400 mb-4">Šio tipo failų peržiūra nepalaikoma</p>
+        <button id="preview-dl-btn" class="btn btn-primary">Atsisiųsti</button>
+      </div>`;
+    // Event listener vietoj inline onclick (saugu nuo XSS)
+    document.getElementById('preview-dl-btn').addEventListener('click', () => {
+      downloadFile(id, name);
+    });
+  }
+}
+
+function downloadPreviewFile() {
+  const id = S.previewFileId;
+  const title = document.getElementById('preview-title').textContent;
+  if (id) downloadFile(id, title);
+}
+
+/* ====================================================
+   CONTEXT MENU
+==================================================== */
+function showFileCtxMenu(e, f) {
+  S.ctxFile = f;
+  const prev = document.getElementById('ctx-preview');
+  prev.style.display = isPreviewable(f.mime_type) ? 'flex' : 'none';
+  showCtxAt(e.clientX, e.clientY);
+}
+
+function showFolderContextMenu(e, folder) {
+  S.ctxFile = { _isFolder: true, ...folder };
+  // Folder kontekste: tik pervadinti ir ištrinti
+  document.getElementById('ctx-preview').style.display = 'none';
+  // Perstatomkime "download" ir "share" – aplankalams nereikia
+  showCtxAt(e.clientX, e.clientY);
+}
+
+function showCtxAt(x, y) {
+  const m = document.getElementById('ctx-menu');
+  m.classList.add('visible');
+  const mw = 180, mh = 220;
+  m.style.left = (x + mw > window.innerWidth  ? x - mw : x) + 'px';
+  m.style.top  = (y + mh > window.innerHeight ? y - mh : y) + 'px';
+}
+
+function hideCtxMenu() { document.getElementById('ctx-menu').classList.remove('visible'); }
+
+document.addEventListener('click',   () => hideCtxMenu());
+document.addEventListener('keydown', e => { if (e.key === 'Escape') hideCtxMenu(); });
+
+async function ctxAction(action) {
+  hideCtxMenu();
+  const f = S.ctxFile;
+  if (!f) return;
+
+  if (f._isFolder) {
+    if (action === 'rename') openRenameModal('folder', f.id, f.name);
+    if (action === 'delete') await deleteFolder(f.id, f.name);
+    return;
+  }
+
+  if (action === 'preview')  previewFile(f.id, fname(f));
+  if (action === 'download') downloadFile(f.id, fname(f));
+  if (action === 'rename')   openRenameModal('file', f.id, fname(f));
+  if (action === 'share')    openShareModal(f.id, fname(f));
+  if (action === 'delete')   await deleteFile(f.id);
+}
+
+/* ====================================================
+   FAILŲ TRYNIMAS
+==================================================== */
+async function deleteFile(id) {
+  try {
+    await api('DELETE', `/files/${id}`);
+    showToast('🗑️ Perkeltas į šiukšlinę');
+    await loadFiles(S.currentFolderId);
+    await refreshUser();
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+async function deleteFolder(id, name) {
+  try {
+    await api('DELETE', `/folders/${id}`);
+    showToast(`🗑️ Aplankas "${name}" perkeltas į šiukšlinę`);
+    await loadFolderTree();
+    await loadFiles(S.currentFolderId);
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+/* ====================================================
+   PERVADINIMAS
+==================================================== */
+function openRenameModal(type, id, currentName) {
+  S.renameTarget = { type, id, name: currentName };
+  document.getElementById('rename-input').value = currentName;
+  openModal('modal-rename');
+  setTimeout(() => {
+    const inp = document.getElementById('rename-input');
+    inp.focus(); inp.select();
+  }, 200);
+}
+
+async function doRename() {
+  const newName = document.getElementById('rename-input').value.trim();
+  if (!newName) return;
+  const t = S.renameTarget;
+  try {
+    if (t.type === 'file') {
+      await apiJson('PATCH', `/files/${t.id}`, { filename: newName });
+    } else {
+      await apiJson('PATCH', `/folders/${t.id}`, { name: newName });
+      await loadFolderTree();
+    }
+    closeModal('modal-rename');
+    showToast('✅ Pervadinta');
+    await loadFiles(S.currentFolderId);
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+/* ====================================================
+   NAUJAS APLANKAS
+==================================================== */
+function openNewFolderModal() {
+  document.getElementById('folder-name-input').value = '';
+  S.selectedColor = '#3B82F6';
+  document.querySelectorAll('.color-dot').forEach(d => {
+    d.classList.toggle('selected', d.dataset.color === '#3B82F6');
+  });
+  openModal('modal-folder');
+  setTimeout(() => document.getElementById('folder-name-input').focus(), 200);
+}
+
+function selectColor(c) {
+  S.selectedColor = c;
+  document.querySelectorAll('.color-dot').forEach(d => {
+    d.classList.toggle('selected', d.dataset.color === c);
+  });
+}
+
+async function createFolder() {
+  const name = document.getElementById('folder-name-input').value.trim();
+  if (!name) return;
+  try {
+    await apiJson('POST', '/folders', {
+      name,
+      color: S.selectedColor,
+      parent_id: S.currentFolderId,
+    });
+    closeModal('modal-folder');
+    showToast('📁 Aplankas sukurtas');
+    await loadFolderTree();
+    await loadFiles(S.currentFolderId);
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+/* ====================================================
+   SHARE
+==================================================== */
+function openShareModal(fileId, name) {
+  S.shareFileId = fileId;
+  S.shareUrl = null;
+  document.getElementById('share-filename').textContent = name;
+  document.getElementById('share-create-form').style.display = 'block';
+  document.getElementById('share-result').classList.add('hidden');
+  document.getElementById('share-max').value = 10;
+  openModal('modal-share');
+}
+
+async function createShareLink() {
+  const max = parseInt(document.getElementById('share-max').value) || 10;
+  try {
+    const data = await apiJson('POST', '/share', {
+      file_id: S.shareFileId,
+      max_downloads: max,
+    });
+    S.shareUrl = data.share_url;
+    document.getElementById('share-url-display').textContent = data.share_url;
+    document.getElementById('share-create-form').style.display = 'none';
+    document.getElementById('share-result').classList.remove('hidden');
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+function copyShareUrl() {
+  if (!S.shareUrl) return;
+  navigator.clipboard.writeText(S.shareUrl).then(() => {
+    showToast('📋 Nuoroda nukopijuota!');
+    closeModal('modal-share');
+  });
+}
+
+/* ====================================================
+   ŠIUKŠLINĖ
+==================================================== */
+async function openTrash() {
+  try {
+    S.trashItems = await apiJson('GET', '/trash');
+    renderTrash();
+    openModal('modal-trash');
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+function renderTrash() {
+  const list = document.getElementById('trash-list');
+  const empty = document.getElementById('trash-empty-state');
+  const emptyBtn = document.getElementById('empty-trash-btn');
+  list.innerHTML = '';
+
+  if (!S.trashItems.length) {
+    empty.classList.remove('hidden');
+    emptyBtn.style.display = 'none';
+    return;
+  }
+  empty.classList.add('hidden');
+  emptyBtn.style.display = 'inline-flex';
+
+  S.trashItems.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/4 group';
+
+    const safeColor = (item.color && /^#[0-9a-fA-F]{6}$/.test(item.color)) ? item.color : '#6366f1';
+    const icon = item.item_type === 'folder'
+      ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="${safeColor}" opacity=".8"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`
+      : `<span style="font-size:1.1rem">${fileIcon(null).emoji}</span>`;
+
+    const deleted = new Date(item.deleted_at).toLocaleDateString('lt-LT');
+    row.innerHTML = `
+      <div class="w-8 h-8 rounded-lg bg-white/4 flex items-center justify-center shrink-0">${icon}</div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm text-slate-300 truncate">${esc(item.name)}</p>
+        <p class="text-xs text-slate-600">${esc(deleted)}${item.size_bytes ? ' · '+sizeStr(item.size_bytes) : ''}</p>
+      </div>
+      <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button data-tact="restore" data-ttype="${esc(item.item_type)}" data-tid="${item.id}"
+                class="btn btn-ghost text-xs py-1 px-2">Atkurti</button>
+        <button data-tact="delete" data-ttype="${esc(item.item_type)}" data-tid="${item.id}"
+                class="btn btn-danger text-xs py-1 px-2">Trinti</button>
+      </div>`;
+
+    // Event delegation – jokio inline onclick
+    row.querySelectorAll('button[data-tact]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tact = btn.dataset.tact;
+        const ttype = btn.dataset.ttype;
+        const tid = parseInt(btn.dataset.tid, 10);
+        if (tact === 'restore') restoreTrashItem(ttype, tid);
+        if (tact === 'delete')  permanentDelete(ttype, tid);
+      });
+    });
+    list.appendChild(row);
+  });
+}
+
+async function restoreTrashItem(type, id) {
+  try {
+    const path = type === 'file' ? `/files/${id}/restore` : `/folders/${id}/restore`;
+    await apiJson('POST', path);
+    showToast('♻️ Atkurta');
+    S.trashItems = await apiJson('GET', '/trash');
+    renderTrash();
+    await loadFolderTree();
+    await loadFiles(S.currentFolderId);
+    await refreshUser();
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+async function permanentDelete(type, id) {
+  try {
+    const path = type === 'file' ? `/trash/files/${id}` : `/trash/folders/${id}`;
+    await api('DELETE', path);
+    showToast('🗑️ Galutinai ištrinta');
+    S.trashItems = await apiJson('GET', '/trash');
+    renderTrash();
+    await refreshUser();
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+async function emptyTrash() {
+  try {
+    await api('DELETE', '/trash/empty');
+    showToast('🧹 Šiukšlinė išvalyta');
+    S.trashItems = [];
+    renderTrash();
+    await refreshUser();
+  } catch(e) { showToast('❌ ' + e.message, 'error'); }
+}
+
+/* ====================================================
+   PAIEŠKA
+   - Tuščia frazė ar trumpesnė nei 2 simboliai → grįžtam į einamąjį aplanką
+   - Ilgesnė užklausa → kreipiamės į /api/search per visą saugyklą
+   - Debounce 300ms (kad nebūtų po užklausą kiekvienam paspaudimui)
+==================================================== */
+let _searchTimer = null;
+
+function onSearch(q) {
+  S.searchQuery = q;
+  if (_searchTimer) clearTimeout(_searchTimer);
+
+  // Trumpa frazė → tiesiog atnaujiname dabartinio aplanko vaizdą
+  if (!q || q.trim().length < 2) {
+    renderAll();
+    return;
+  }
+
+  // Debounced server-side paieška per visą saugyklą
+  _searchTimer = setTimeout(() => doGlobalSearch(q.trim()), 300);
+}
+
+async function doGlobalSearch(q) {
+  try {
+    const data = await apiJson('GET', `/search?q=${encodeURIComponent(q)}&limit=100`);
+    // Pakeičiame esamą failų ir aplankų sąrašą paieškos rezultatais.
+    // Tai laikinas "search view" – kai vartotojas išvalo paiešką arba
+    // navigates kitur, įprastas turinys atnaujinamas.
+    S.files = data.files || [];
+    S.subfolders = data.folders || [];
+
+    document.getElementById('folder-title').textContent =
+      `Paieška: "${q}" (${data.total} rezultatas(-ų))`;
+    renderAll();
+  } catch (e) {
+    if (e.message === '401') return;
+    showToast('❌ Paieškos klaida: ' + e.message, 'error');
+  }
+}
+
+/* ====================================================
+   USER MENU
+==================================================== */
+function toggleUserMenu() {
+  document.getElementById('user-dropdown').classList.toggle('hidden');
+}
+document.addEventListener('click', e => {
+  if (!document.getElementById('user-menu-wrap').contains(e.target))
+    document.getElementById('user-dropdown').classList.add('hidden');
+});
+
+async function logout() {
+  try { await api('POST', '/auth/logout'); } catch(e) {}
+  window.location.href = '/konradvault.html';
+}
+
+async function refreshUser() {
+  try {
+    S.user = await apiJson('GET', '/auth/me');
+    updateStorageUI(S.user.storage_used_bytes, 2 * 1024 * 1024 * 1024);
+  } catch(e) {}
+}
+
+/* ====================================================
+   MODALO PAGALBINĖS FUNKCIJOS
+==================================================== */
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape')
+    document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+});
+
+/* ====================================================
+   TOAST
+==================================================== */
+function showToast(msg, type) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  if (type === 'error') t.style.borderColor = 'rgba(239,68,68,.3)';
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ====================================================
+   UTILITIES
+==================================================== */
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ====================================================
+   PALEIDIMAS
+==================================================== */
+init();
+</script>
+</body>
+</html>

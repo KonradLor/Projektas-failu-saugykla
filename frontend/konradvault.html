@@ -1,0 +1,1746 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KonradVault — Privati Failų Saugykla</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* =============================================
+       BAZINIAI STILIAI
+    ============================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #05050f;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    /* =============================================
+       ANIMUOTAS FONAS – ŽVAIGŽDINĖ ERDVĖ + TINKLELIS
+    ============================================= */
+    #canvas-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* CSS Grid pulsavimas fone */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,.06) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+      animation: gridPulse 8s ease-in-out infinite;
+    }
+
+    @keyframes gridPulse {
+      0%, 100% { opacity: .5; }
+      50%       { opacity: 1; }
+    }
+
+    /* Radialus gradientas viršuje kaip "šviesos šaltinis" */
+    .glow-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,.25) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%,  rgba(139,92,246,.12) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 20% 70%,  rgba(59,130,246,.10) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* =============================================
+       GLASSMORPHISM KORTELĖ
+    ============================================= */
+    .glass {
+      background: rgba(255,255,255,.04);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 1.25rem;
+    }
+
+    .glass:hover {
+      background: rgba(255,255,255,.07);
+      border-color: rgba(139,92,246,.3);
+      transition: all .35s ease;
+    }
+
+    /* =============================================
+       GRADIENTO TEKSTAS
+    ============================================= */
+    .gradient-text {
+      background: linear-gradient(135deg, #a78bfa 0%, #818cf8 40%, #60a5fa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .gradient-text-warm {
+      background: linear-gradient(135deg, #f472b6 0%, #a78bfa 50%, #818cf8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* =============================================
+       MYGTUKŲ STILIAI
+    ============================================= */
+    .btn-primary {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .85rem 2.2rem;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform .2s, box-shadow .2s;
+      box-shadow: 0 4px 30px rgba(99,102,241,.4);
+    }
+
+    .btn-primary::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #818cf8, #a78bfa);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 40px rgba(99,102,241,.6);
+    }
+    .btn-primary:hover::before { opacity: 1; }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary span { position: relative; z-index: 1; }
+
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .8rem 2rem;
+      border: 1px solid rgba(139,92,246,.5);
+      border-radius: 50px;
+      font-weight: 600;
+      color: #a78bfa;
+      background: transparent;
+      cursor: pointer;
+      transition: all .25s;
+    }
+    .btn-outline:hover {
+      border-color: #a78bfa;
+      background: rgba(139,92,246,.1);
+      color: #c4b5fd;
+    }
+
+    /* =============================================
+       ANIMACIJOS
+    ============================================= */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes floatY {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-12px); }
+    }
+
+    @keyframes pulse-ring {
+      0%   { transform: scale(.95); box-shadow: 0 0 0 0 rgba(99,102,241,.6); }
+      70%  { transform: scale(1);   box-shadow: 0 0 0 16px rgba(99,102,241,0); }
+      100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+
+    @keyframes spin-slow {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0; }
+    }
+
+    @keyframes countUp {
+      from { opacity: 0; transform: scale(.5); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    @keyframes slideInLeft {
+      from { opacity: 0; transform: translateX(-40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    @keyframes progressFill {
+      from { width: 0%; }
+    }
+
+    /* Scroll animacijos */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Hero animacijos */
+    .hero-badge  { animation: fadeInUp .6s ease .1s both; }
+    .hero-title  { animation: fadeInUp .7s ease .2s both; }
+    .hero-sub    { animation: fadeInUp .7s ease .35s both; }
+    .hero-btns   { animation: fadeInUp .7s ease .5s both; }
+    .hero-stats  { animation: fadeInUp .7s ease .65s both; }
+
+    /* Lock animacija */
+    .lock-float {
+      animation: floatY 4s ease-in-out infinite;
+    }
+
+    /* Urgency counter pulsa */
+    .urgency-pulse {
+      animation: pulse-ring 2s cubic-bezier(.455,.03,.515,.955) infinite;
+    }
+
+    /* Cursor mirksėjimas typed'e */
+    .cursor { animation: blink 1s step-end infinite; }
+
+    /* Progress bar animacija */
+    .progress-bar {
+      animation: progressFill 1.5s ease .3s both;
+    }
+
+    /* =============================================
+       SLAPTAŽODŽIO LAUKAS – GLOW EFEKTAS
+    ============================================= */
+    .input-glow {
+      background: rgba(255,255,255,.05);
+      border: 1.5px solid rgba(255,255,255,.12);
+      border-radius: .75rem;
+      color: #f1f5f9;
+      transition: border-color .25s, box-shadow .25s;
+      outline: none;
+      width: 100%;
+      padding: .85rem 1.1rem;
+      font-size: 1rem;
+    }
+    .input-glow::placeholder { color: rgba(255,255,255,.3); }
+    .input-glow:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.2), 0 0 20px rgba(99,102,241,.15);
+    }
+
+    /* =============================================
+       MODALAS
+    ============================================= */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5,5,15,.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .3s;
+    }
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+    .modal-box {
+      background: #0d0d1f;
+      border: 1px solid rgba(139,92,246,.25);
+      border-radius: 1.5rem;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 460px;
+      position: relative;
+      transform: scale(.92);
+      transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+      box-shadow: 0 25px 80px rgba(0,0,0,.6), 0 0 60px rgba(99,102,241,.1);
+    }
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+
+    /* Modalas – žingsnių indikatorius */
+    .step-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      transition: all .3s;
+    }
+    .step-dot.active {
+      background: #6366f1;
+      box-shadow: 0 0 10px rgba(99,102,241,.7);
+      width: 24px;
+      border-radius: 4px;
+    }
+    .step-dot.done { background: #22c55e; }
+
+    /* QR kodo konteineris */
+    .qr-container {
+      background: #fff;
+      border-radius: 1rem;
+      padding: 1rem;
+      display: inline-block;
+      box-shadow: 0 0 40px rgba(139,92,246,.3);
+    }
+
+    /* OTP įvesties laukai */
+    .otp-input {
+      width: 44px; height: 52px;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      background: rgba(255,255,255,.06);
+      border: 1.5px solid rgba(255,255,255,.15);
+      border-radius: .6rem;
+      color: #fff;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .otp-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.25);
+    }
+    .otp-input.filled { border-color: rgba(139,92,246,.6); }
+
+    /* =============================================
+       FEATURE KORTELĖS
+    ============================================= */
+    .feature-card {
+      position: relative;
+      overflow: hidden;
+      transition: transform .3s, box-shadow .3s;
+    }
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(99,102,241,.08), transparent);
+      opacity: 0;
+      transition: opacity .35s;
+      border-radius: inherit;
+    }
+    .feature-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 20px 50px rgba(0,0,0,.4), 0 0 30px rgba(99,102,241,.15);
+    }
+    .feature-card:hover::before { opacity: 1; }
+
+    /* Ikonos ratas */
+    .icon-ring {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+    }
+    .icon-ring::after {
+      content: '';
+      position: absolute;
+      inset: -3px;
+      border-radius: 50%;
+      border: 1px solid rgba(139,92,246,.3);
+      animation: spin-slow 8s linear infinite;
+      border-top-color: rgba(139,92,246,.8);
+    }
+
+    /* =============================================
+       URGENCY JUOSTA
+    ============================================= */
+    .urgency-bar {
+      background: linear-gradient(90deg, rgba(239,68,68,.1), rgba(251,146,60,.1));
+      border: 1px solid rgba(251,146,60,.25);
+      border-radius: .75rem;
+    }
+
+    /* Plaukiojantys fragmentai */
+    .floating-fragment {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      animation: floatY var(--dur, 4s) ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
+    }
+
+    /* =============================================
+       NAV
+    ============================================= */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      padding: 1.1rem 2rem;
+      background: rgba(5,5,15,.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      transition: all .3s;
+    }
+
+    /* =============================================
+       SCROLLBAR
+    ============================================= */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0a1a; }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(99,102,241,.4);
+      border-radius: 3px;
+    }
+
+    /* =============================================
+       KODO BLOKAI (features)
+    ============================================= */
+    .code-block {
+      background: rgba(0,0,0,.4);
+      border: 1px solid rgba(99,102,241,.2);
+      border-radius: .75rem;
+      font-family: 'Courier New', monospace;
+      font-size: .8rem;
+      padding: 1rem 1.25rem;
+      color: #94a3b8;
+    }
+    .code-block .kw { color: #a78bfa; }
+    .code-block .str { color: #34d399; }
+    .code-block .num { color: #fb923c; }
+
+    /* =============================================
+       SUCCESS ANIMACIJA
+    ============================================= */
+    @keyframes checkDraw {
+      from { stroke-dashoffset: 50; }
+      to   { stroke-dashoffset: 0; }
+    }
+    .check-path {
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      animation: checkDraw .5s ease .2s forwards;
+    }
+
+    /* =============================================
+       TICKER JUOSTA (viršuje)
+    ============================================= */
+    .ticker-wrap {
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .ticker-content {
+      display: inline-block;
+      animation: ticker 25s linear infinite;
+    }
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* =============================================
+       BLOKAVIMO JUOSTA (spots)
+    ============================================= */
+    .spots-bg {
+      background: linear-gradient(90deg,
+        rgba(99,102,241,.15) 0%,
+        rgba(139,92,246,.1) 50%,
+        rgba(99,102,241,.15) 100%);
+      background-size: 200% auto;
+      animation: shimmer 3s linear infinite;
+    }
+
+  </style>
+</head>
+
+<body>
+
+<!-- ============================================
+     ANIMUOTAS FONAS
+============================================= -->
+<div class="grid-bg"></div>
+<div class="glow-bg"></div>
+<canvas id="canvas-bg"></canvas>
+
+<!-- ============================================
+     VIRŠUTINĖ TICKER JUOSTA
+============================================= -->
+<div class="fixed top-0 left-0 right-0 z-50 text-xs py-1.5 spots-bg border-b border-indigo-500/10"
+     style="font-size:.72rem;">
+  <div class="ticker-wrap">
+    <div class="ticker-content">
+      <span class="text-indigo-300 font-medium px-4">🔒 Fernet AES-128-CBC šifravimas</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-violet-300 font-medium px-4">📦 Max 500MB failas</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-blue-300 font-medium px-4">💾 2GB asmeninė saugykla</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-amber-300 font-medium px-4">👤 Tik 10 vartotojų</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-green-300 font-medium px-4">🔑 Google Authenticator 2FA</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-pink-300 font-medium px-4">🛡️ Zero-knowledge architektūra</span>
+      <span class="text-slate-500 px-2">•</span>
+      <!-- kopija animacijos tęsimui -->
+      <span class="text-indigo-300 font-medium px-4">🔒 Fernet AES-128-CBC šifravimas</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-violet-300 font-medium px-4">📦 Max 500MB failas</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-blue-300 font-medium px-4">💾 2GB asmeninė saugykla</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-amber-300 font-medium px-4">👤 Tik 10 vartotojų</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-green-300 font-medium px-4">🔑 Google Authenticator 2FA</span>
+      <span class="text-slate-500 px-2">•</span>
+      <span class="text-pink-300 font-medium px-4">🛡️ Zero-knowledge architektūra</span>
+      <span class="text-slate-500 px-2">•</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================
+     NAVIGACIJA
+============================================= -->
+<nav style="top: 28px;">
+  <div class="max-w-6xl mx-auto flex items-center justify-between">
+    <!-- Logo -->
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <span class="font-bold text-white text-lg tracking-tight">KonradVault</span>
+    </div>
+
+    <!-- Navigacijos nuorodos -->
+    <div class="hidden md:flex items-center gap-6 text-sm text-slate-400">
+      <a href="#features" class="hover:text-white transition-colors">Funkcijos</a>
+      <a href="#how" class="hover:text-white transition-colors">Kaip veikia</a>
+      <a href="#limits" class="hover:text-white transition-colors">Limitai</a>
+    </div>
+
+    <!-- Mygtukų grupė -->
+    <div class="flex items-center gap-3">
+      <button onclick="openLogin()" class="btn-outline text-sm py-2 px-4">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Prisijungti
+      </button>
+      <button onclick="openRegister()" class="btn-primary text-sm py-2 px-5">
+        <span>Registruotis</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================
+     HERO SEKCIJA
+============================================= -->
+<section class="relative min-h-screen flex flex-col items-center justify-center px-4 pt-24 pb-16"
+         style="z-index:1;">
+
+  <!-- Plaukiojantys elementai -->
+  <div class="floating-fragment w-2 h-2 bg-indigo-400/30 top-1/4 left-1/4"
+       style="--dur:5s; --delay:0s;"></div>
+  <div class="floating-fragment w-3 h-3 bg-violet-400/20 top-1/3 right-1/3"
+       style="--dur:6s; --delay:1s;"></div>
+  <div class="floating-fragment w-1.5 h-1.5 bg-blue-400/25 bottom-1/3 left-1/3"
+       style="--dur:4.5s; --delay:.5s;"></div>
+
+  <div class="text-center max-w-4xl mx-auto">
+
+    <!-- Badge -->
+    <div class="hero-badge inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full
+                border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm
+                mb-6 font-medium">
+      <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+      Universiteto baigiamasis projektas · 2026
+    </div>
+
+    <!-- Pavadinimas -->
+    <h1 class="hero-title text-6xl md:text-7xl lg:text-8xl font-black leading-none mb-4
+               tracking-tight">
+      <span class="gradient-text">Konrad</span><span class="text-white">Vault</span>
+    </h1>
+
+    <!-- Subtitulas su typing efektu -->
+    <p class="hero-sub text-xl md:text-2xl text-slate-400 font-light mb-2">
+      Privati failų saugykla su
+    </p>
+    <p class="hero-sub text-xl md:text-2xl font-semibold mb-8">
+      <span id="typed-text" class="gradient-text-warm"></span><span class="cursor text-violet-400">|</span>
+    </p>
+
+    <!-- CTA mygtukai -->
+    <div class="hero-btns flex flex-col sm:flex-row gap-4 justify-center mb-12">
+      <button onclick="openRegister()"
+              class="btn-primary text-base px-8 py-4">
+        <span>🚀 Registruotis dabar</span>
+        <span class="text-xs opacity-75 border border-white/20 rounded-full px-2 py-0.5"
+              id="nav-slots-badge">liko <strong id="nav-remaining">?</strong>/10</span>
+      </button>
+      <button onclick="openLogin()"
+              class="btn-outline text-base px-8 py-4">
+        Jau turiu paskyrą
+      </button>
+    </div>
+
+    <!-- Mini statistikos juosta -->
+    <div class="hero-stats flex flex-wrap justify-center gap-6 text-sm">
+      <div class="flex items-center gap-2 text-slate-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+        Veikia Oracle Cloud ARM
+      </div>
+      <div class="flex items-center gap-2 text-slate-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+        Python · FastAPI · SQLite
+      </div>
+      <div class="flex items-center gap-2 text-slate-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-violet-400"></span>
+        End-to-end šifravimas
+      </div>
+    </div>
+  </div>
+
+  <!-- Scroll indikatorius -->
+  <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1
+              text-slate-600 text-xs animate-bounce">
+    <span>Scroll</span>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+  </div>
+</section>
+
+<!-- ============================================
+     LIMITŲ JUOSTA (svarbiausi skaičiai)
+============================================= -->
+<section id="limits" class="relative py-16 px-4" style="z-index:1;">
+  <div class="max-w-5xl mx-auto">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+      <!-- 500 MB -->
+      <div class="reveal glass p-6 text-center feature-card">
+        <div class="text-4xl font-black gradient-text mb-1">500</div>
+        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">MB Max failas</div>
+        <div class="mt-3 text-xs text-slate-600">Tinka dokumentams, nuotraukoms ir vaizdo įrašams</div>
+      </div>
+
+      <!-- 2 GB -->
+      <div class="reveal glass p-6 text-center feature-card" style="transition-delay:.1s;">
+        <div class="text-4xl font-black gradient-text mb-1">2</div>
+        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">GB Saugykla</div>
+        <div class="mt-3 text-xs text-slate-600">Asmeninė saugoma vieta kiekvienam vartotojui</div>
+      </div>
+
+      <!-- 10 vartotojų -->
+      <div class="reveal glass p-6 text-center feature-card" style="transition-delay:.2s;">
+        <div class="text-4xl font-black gradient-text-warm mb-1">10</div>
+        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">Max vartotojų</div>
+        <div class="mt-3 text-xs text-slate-600">Ekskluzyvus priėjimas – registruokitės kol yra vietos</div>
+      </div>
+
+      <!-- Laisva vieta (dinamiškai) -->
+      <div class="reveal glass p-6 text-center feature-card urgency-pulse" style="transition-delay:.3s;">
+        <div class="text-4xl font-black text-amber-400 mb-1" id="remaining-big">…</div>
+        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">Liko vietų</div>
+        <div class="mt-3 text-xs text-slate-600" id="remaining-hint">Kraunama…</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     KAIP VEIKIA – 3 ŽINGSNIAI
+============================================= -->
+<section id="how" class="relative py-20 px-4" style="z-index:1;">
+  <div class="max-w-4xl mx-auto">
+
+    <div class="text-center mb-14 reveal">
+      <p class="text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Paprastas procesas</p>
+      <h2 class="text-4xl font-bold text-white mb-4">Trijų žingsnių registracija</h2>
+      <p class="text-slate-400 max-w-xl mx-auto">
+        Jokio el. pašto, jokio slaptažodžio. Tik vardas ir telefonas su Google Authenticator.
+      </p>
+    </div>
+
+    <div class="relative">
+
+      <!-- Jungiamoji linija -->
+      <div class="hidden md:block absolute top-12 left-[calc(16.6%+1rem)] right-[calc(16.6%+1rem)]
+                  h-px bg-gradient-to-r from-indigo-500/50 via-violet-500/50 to-indigo-500/50"></div>
+
+      <div class="grid md:grid-cols-3 gap-8">
+
+        <!-- Žingsnis 1 -->
+        <div class="reveal glass p-7 text-center feature-card">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl
+                      bg-gradient-to-br from-indigo-600 to-indigo-800 mb-5
+                      shadow-lg shadow-indigo-500/30 text-2xl font-black text-white">
+            1
+          </div>
+          <h3 class="font-bold text-white text-lg mb-2">Pasirinkite vardą</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Įveskite slapyvardį (3–50 simbolių). Jokio el. pašto ar slaptažodžio –
+            jūsų identitetas yra tik jūsų telefonas.
+          </p>
+          <div class="mt-4 code-block text-left">
+            <span class="kw">username</span>: <span class="str">"konradas_99"</span>
+          </div>
+        </div>
+
+        <!-- Žingsnis 2 -->
+        <div class="reveal glass p-7 text-center feature-card" style="transition-delay:.15s;">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl
+                      bg-gradient-to-br from-violet-600 to-violet-800 mb-5
+                      shadow-lg shadow-violet-500/30 text-2xl font-black text-white">
+            2
+          </div>
+          <h3 class="font-bold text-white text-lg mb-2">Nuskenuokite QR kodą</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Atidarykite Google Authenticator ir nuskenuokite rodomą QR kodą.
+            Jūsų raktas saugomas tik telefone – serveryje tik hash.
+          </p>
+          <div class="mt-4 flex justify-center">
+            <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center">
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="#000">
+                <rect x="2" y="2" width="18" height="18" fill="none" stroke="#000" stroke-width="3"/>
+                <rect x="6" y="6" width="10" height="10"/>
+                <rect x="28" y="2" width="18" height="18" fill="none" stroke="#000" stroke-width="3"/>
+                <rect x="32" y="6" width="10" height="10"/>
+                <rect x="2" y="28" width="18" height="18" fill="none" stroke="#000" stroke-width="3"/>
+                <rect x="6" y="32" width="10" height="10"/>
+                <rect x="28" y="28" width="4" height="4"/><rect x="34" y="28" width="4" height="4"/>
+                <rect x="40" y="28" width="6" height="4"/><rect x="28" y="34" width="6" height="4"/>
+                <rect x="36" y="34" width="4" height="4"/><rect x="42" y="34" width="4" height="4"/>
+                <rect x="28" y="40" width="4" height="6"/><rect x="34" y="42" width="12" height="4"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Žingsnis 3 -->
+        <div class="reveal glass p-7 text-center feature-card" style="transition-delay:.3s;">
+          <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl
+                      bg-gradient-to-br from-green-600 to-emerald-700 mb-5
+                      shadow-lg shadow-green-500/30 text-2xl font-black text-white">
+            ✓
+          </div>
+          <h3 class="font-bold text-white text-lg mb-2">Patvirtinkite ir naudokitės</h3>
+          <p class="text-slate-400 text-sm leading-relaxed">
+            Įveskite 6 skaitmenų kodą iš Authenticator. Paskyra patvirtinta –
+            iš karto galite kelti failus.
+          </p>
+          <div class="mt-4 flex justify-center gap-1.5">
+            <div class="w-8 h-10 rounded bg-indigo-500/20 border border-indigo-500/40
+                        flex items-center justify-center text-indigo-300 font-bold">3</div>
+            <div class="w-8 h-10 rounded bg-indigo-500/20 border border-indigo-500/40
+                        flex items-center justify-center text-indigo-300 font-bold">7</div>
+            <div class="w-8 h-10 rounded bg-indigo-500/20 border border-indigo-500/40
+                        flex items-center justify-center text-indigo-300 font-bold">2</div>
+            <div class="w-8 h-10 rounded bg-green-500/20 border border-green-500/40
+                        flex items-center justify-center text-green-300 font-bold">8</div>
+            <div class="w-8 h-10 rounded bg-green-500/20 border border-green-500/40
+                        flex items-center justify-center text-green-300 font-bold">1</div>
+            <div class="w-8 h-10 rounded bg-green-500/20 border border-green-500/40
+                        flex items-center justify-center text-green-300 font-bold">4</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     FUNKCIJŲ SEKCIJA
+============================================= -->
+<section id="features" class="relative py-20 px-4" style="z-index:1;">
+  <div class="max-w-6xl mx-auto">
+
+    <div class="text-center mb-14 reveal">
+      <p class="text-violet-400 text-sm font-semibold uppercase tracking-widest mb-3">Technologijos</p>
+      <h2 class="text-4xl font-bold text-white mb-4">Sukurta su saugumu mintyje</h2>
+      <p class="text-slate-400 max-w-xl mx-auto">
+        Kiekvienas failas šifruojamas dar jūsų naršyklėje – serveris niekada nemato plaintext turinio.
+      </p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- Šifravimas -->
+      <div class="reveal glass p-6 feature-card">
+        <div class="icon-ring bg-indigo-500/20 mb-4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" stroke-linecap="round">
+            <rect x="3" y="11" width="18" height="11" rx="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-white mb-2">Fernet šifravimas</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-3">
+          AES-128-CBC + HMAC-SHA256. Kiekvienas vartotojas turi atskirą šifravimo raktą,
+          kurį saugo serverio master key.
+        </p>
+        <div class="code-block">
+          <span class="kw">MASTER_KEY</span> → <span class="kw">USER_KEY</span> → <span class="str">FAILAS</span>
+        </div>
+      </div>
+
+      <!-- 2FA -->
+      <div class="reveal glass p-6 feature-card" style="transition-delay:.1s;">
+        <div class="icon-ring bg-green-500/20 mb-4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-white mb-2">Google Authenticator 2FA</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-3">
+          TOTP (RFC 6238) autentifikacija – 30 sekundžių rotacinis 6 skaitmenų kodas.
+          Slaptažodis nereikalingas.
+        </p>
+        <div class="flex gap-1.5 mt-2">
+          <div class="h-1.5 flex-1 bg-green-500 rounded-full"></div>
+          <div class="h-1.5 flex-1 bg-green-400 rounded-full opacity-70"></div>
+          <div class="h-1.5 flex-1 bg-green-300 rounded-full opacity-40"></div>
+          <span class="text-xs text-slate-500 ml-1">30s</span>
+        </div>
+      </div>
+
+      <!-- Streaming -->
+      <div class="reveal glass p-6 feature-card" style="transition-delay:.2s;">
+        <div class="icon-ring bg-blue-500/20 mb-4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-white mb-2">Srautinis šifravimas</h3>
+        <p class="text-slate-400 text-sm leading-relaxed mb-3">
+          500MB failai šifruojami po 64KB gabalais. Serveris nenukrauna viso failo
+          į atmintį – nei upload'o, nei download'o metu.
+        </p>
+        <div class="code-block">
+          chunk = <span class="num">65536</span> bytes (<span class="str">64KB</span>)
+        </div>
+      </div>
+
+      <!-- Dalinimasis -->
+      <div class="reveal glass p-6 feature-card" style="transition-delay:.1s;">
+        <div class="icon-ring bg-violet-500/20 mb-4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2" stroke-linecap="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-white mb-2">Share Link'ai</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Sukurkite riboto naudojimo nuorodas failų dalinimui.
+          Nurodykite kiek kartų leidžiama atsisiųsti (1–1000).
+        </p>
+      </div>
+
+      <!-- Aplankalai -->
+      <div class="reveal glass p-6 feature-card" style="transition-delay:.2s;">
+        <div class="icon-ring bg-amber-500/20 mb-4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-white mb-2">Spalvoti aplankalai</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Organizer'io medžio struktūra su spalvų žymėjimu ir šiukšlinės funkcija
+          atsitiktiniam trynimui apsaugoti.
+        </p>
+      </div>
+
+      <!-- Nulis žinių -->
+      <div class="reveal glass p-6 feature-card" style="transition-delay:.3s;">
+        <div class="icon-ring bg-rose-500/20 mb-4">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+        </div>
+        <h3 class="font-bold text-white mb-2">Zero-knowledge</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">
+          Serveris niekada nemato jūsų failų turinio. Net jei duomenų bazė
+          būtų pavogta – failai neįskaitomi.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     URGENCY SEKCIJA – REGISTRUOKITĖS DABAR
+============================================= -->
+<section class="relative py-20 px-4" style="z-index:1;">
+  <div class="max-w-3xl mx-auto">
+    <div class="reveal glass p-10 text-center urgency-bar">
+
+      <!-- Pulsavimo taškas -->
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full
+                  bg-amber-500/10 border border-amber-500/25 text-amber-400 text-sm mb-6">
+        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+        Registracija atidaryta
+      </div>
+
+      <h2 class="text-4xl md:text-5xl font-black text-white mb-2">
+        Liko <span class="text-amber-400" id="urgency-remaining">…</span> iš 10 vietų
+      </h2>
+      <p class="text-slate-400 mb-8 text-lg">
+        Sistema priima tik <strong class="text-white">10 vartotojų</strong>.
+        Kai vietos baigiasi – registracija užsidarys visam laikui.
+      </p>
+
+      <!-- Progress juosta -->
+      <div class="mb-8">
+        <div class="flex justify-between text-xs text-slate-500 mb-2">
+          <span>0</span>
+          <span id="progress-label">? / 10 užimta</span>
+          <span>10</span>
+        </div>
+        <div class="h-3 bg-white/5 rounded-full overflow-hidden border border-white/8">
+          <div id="spots-bar"
+               class="h-full rounded-full progress-bar transition-all duration-1000"
+               style="width:0%;background:linear-gradient(90deg,#6366f1,#8b5cf6,#ec4899);">
+          </div>
+        </div>
+      </div>
+
+      <button onclick="openRegister()"
+              class="btn-primary text-lg px-10 py-4 mx-auto">
+        <span>⚡ Užsiregistruoti dabar</span>
+      </button>
+
+      <p class="text-slate-600 text-xs mt-4">
+        Registracija užtrunka &lt;60 sekundžių · Reikalingas tik telefonas
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     APIE PROJEKTĄ
+============================================= -->
+<section class="relative py-16 px-4" style="z-index:1;">
+  <div class="max-w-4xl mx-auto">
+    <div class="reveal glass p-8 md:p-12">
+      <div class="grid md:grid-cols-2 gap-8 items-center">
+
+        <div>
+          <p class="text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">
+            Apie projektą
+          </p>
+          <h2 class="text-3xl font-bold text-white mb-4">
+            Baigiamasis darbas – <span class="gradient-text">100% nuo nulio</span>
+          </h2>
+          <p class="text-slate-400 leading-relaxed mb-4">
+            KonradVault sukurtas kaip universiteto baigiamojo darbo demonstracija.
+            Visas kodas rašytas rankiniu būdu – nuo backend API iki šifravimo algoritmo.
+          </p>
+          <p class="text-slate-400 leading-relaxed">
+            Sistema veikia ant Oracle Cloud <strong class="text-slate-300">Always Free</strong> ARM serverio
+            (Ampere A1, 4 vCPU, 24GB RAM) su Nginx, systemd ir Fail2ban apsauga.
+          </p>
+        </div>
+
+        <div class="space-y-3">
+          <div class="code-block">
+            <div><span class="kw">Backend:</span>  <span class="str">FastAPI + SQLAlchemy</span></div>
+            <div><span class="kw">DB:</span>       <span class="str">SQLite + Alembic</span></div>
+            <div><span class="kw">Crypto:</span>   <span class="str">Fernet (AES-128-CBC)</span></div>
+            <div><span class="kw">Auth:</span>     <span class="str">TOTP (RFC 6238)</span></div>
+            <div><span class="kw">Frontend:</span> <span class="str">Vanilla JS + Tailwind</span></div>
+            <div><span class="kw">Server:</span>   <span class="str">Oracle Cloud ARM</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     FOOTER
+============================================= -->
+<footer class="relative py-10 px-4 border-t border-white/5" style="z-index:1;">
+  <div class="max-w-4xl mx-auto text-center">
+    <div class="flex items-center justify-center gap-2.5 mb-3">
+      <div class="w-6 h-6 rounded bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <span class="font-bold text-white text-sm">KonradVault</span>
+    </div>
+    <p class="text-slate-600 text-sm">
+      Universiteto baigiamasis projektas · Konradas · 2026
+    </p>
+    <p class="text-slate-700 text-xs mt-1">
+      Visi duomenys šifruojami · Niekas neparduodama · Skirta demonstracijai
+    </p>
+  </div>
+</footer>
+
+<!-- ============================================
+     MODALAS – REGISTRACIJA
+============================================= -->
+<div id="register-modal" class="modal-overlay" onclick="closeRegisterOnBg(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+
+    <!-- Uždarymo mygtukas -->
+    <button onclick="closeRegister()"
+            class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10
+                   flex items-center justify-center text-slate-400 hover:text-white transition">
+      ✕
+    </button>
+
+    <!-- Žingsnių indikatoriai -->
+    <div class="flex items-center justify-center gap-2 mb-7">
+      <div id="dot-1" class="step-dot active"></div>
+      <div id="dot-2" class="step-dot"></div>
+      <div id="dot-3" class="step-dot"></div>
+    </div>
+
+    <!-- ====== 1 ŽINGSNIS: USERNAME ====== -->
+    <div id="step-1">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/25
+                    flex items-center justify-center text-2xl mx-auto mb-4">🔐</div>
+        <h2 class="text-xl font-bold text-white mb-1">Sukurkite paskyrą</h2>
+        <p class="text-slate-400 text-sm">Registracija trunka &lt;60 sekundžių</p>
+      </div>
+
+      <!-- Laisvos vietos -->
+      <div id="modal-slots-info"
+           class="flex items-center justify-between px-3 py-2.5 rounded-lg
+                  bg-amber-500/8 border border-amber-500/20 mb-5">
+        <span class="text-amber-400 text-sm">🔥 Liko vietų:</span>
+        <span class="text-amber-300 font-bold" id="modal-remaining">…</span>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-slate-300 text-sm font-medium mb-1.5">Slapyvardis</label>
+        <input id="input-username"
+               type="text"
+               class="input-glow"
+               placeholder="pvz. jonas_99"
+               autocomplete="username"
+               maxlength="50"
+               oninput="validateUsernameInput(this)"
+               onkeydown="if(event.key==='Enter') startRegister()" />
+        <div id="username-hint" class="mt-1.5 text-xs text-slate-600">
+          3–50 simbolių · tik mažos raidės, skaičiai, _ ir -
+        </div>
+        <div id="username-error" class="mt-1.5 text-xs text-red-400 hidden"></div>
+      </div>
+
+      <button id="btn-step1" onclick="startRegister()"
+              class="btn-primary w-full justify-center py-3 mt-2">
+        <span id="btn-step1-text">Tęsti →</span>
+      </button>
+    </div>
+
+    <!-- ====== 2 ŽINGSNIS: QR + TOTP ====== -->
+    <div id="step-2" class="hidden">
+      <div class="text-center mb-5">
+        <h2 class="text-xl font-bold text-white mb-1">Nuskenuokite QR kodą</h2>
+        <p class="text-slate-400 text-sm">
+          Atidarykite <strong class="text-white">Google Authenticator</strong> →
+          Pridėti paskyrą → Nuskenoti QR
+        </p>
+      </div>
+
+      <!-- QR kodas -->
+      <div class="flex justify-center mb-5">
+        <div class="qr-container">
+          <img id="qr-img" src="" alt="QR kodas" width="180" height="180" />
+        </div>
+      </div>
+
+      <!-- Alternatyva: rankinis įvedimas -->
+      <details class="mb-5">
+        <summary class="text-xs text-slate-500 cursor-pointer hover:text-slate-400 text-center">
+          Negaliu nuskenoti QR – įvesti rankiniu būdu
+        </summary>
+        <div class="mt-2 code-block text-xs break-all" id="totp-uri-text">—</div>
+      </details>
+
+      <!-- OTP įvestis -->
+      <div class="mb-4">
+        <label class="block text-slate-300 text-sm font-medium mb-3 text-center">
+          Įveskite 6 skaitmenų kodą iš Authenticator
+        </label>
+        <div class="flex justify-center gap-2" id="otp-inputs">
+          <input type="tel" maxlength="1" class="otp-input" oninput="otpMove(this,0)" onkeydown="otpBack(event,0)" />
+          <input type="tel" maxlength="1" class="otp-input" oninput="otpMove(this,1)" onkeydown="otpBack(event,1)" />
+          <input type="tel" maxlength="1" class="otp-input" oninput="otpMove(this,2)" onkeydown="otpBack(event,2)" />
+          <input type="tel" maxlength="1" class="otp-input" oninput="otpMove(this,3)" onkeydown="otpBack(event,3)" />
+          <input type="tel" maxlength="1" class="otp-input" oninput="otpMove(this,4)" onkeydown="otpBack(event,4)" />
+          <input type="tel" maxlength="1" class="otp-input" oninput="otpMove(this,5)" onkeydown="otpBack(event,5)" />
+        </div>
+      </div>
+
+      <!-- Klaidos pranešimas -->
+      <div id="otp-error" class="text-red-400 text-xs text-center mb-3 hidden"></div>
+
+      <button id="btn-step2" onclick="confirmRegister()"
+              class="btn-primary w-full justify-center py-3">
+        <span id="btn-step2-text">Patvirtinti paskyrą</span>
+      </button>
+
+      <button onclick="backToStep1()"
+              class="w-full text-center text-xs text-slate-600 hover:text-slate-400 mt-3">
+        ← Grįžti atgal
+      </button>
+    </div>
+
+    <!-- ====== 3 ŽINGSNIS: SĖKMĖ ====== -->
+    <div id="step-3" class="hidden text-center">
+      <div class="flex justify-center mb-5">
+        <div class="w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30
+                    flex items-center justify-center">
+          <svg width="40" height="40" viewBox="0 0 50 50" fill="none">
+            <circle cx="25" cy="25" r="22" stroke="#22c55e" stroke-width="2.5"/>
+            <path d="M15 25 L22 32 L35 18" stroke="#22c55e" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round"
+                  class="check-path"/>
+          </svg>
+        </div>
+      </div>
+
+      <h2 class="text-2xl font-bold text-white mb-2">Sveiki, <span id="success-username">—</span>! 🎉</h2>
+      <p class="text-slate-400 text-sm mb-6">
+        Jūsų paskyra sėkmingai sukurta. Nukreipiama į saugyklą…
+      </p>
+
+      <div class="bg-green-500/8 border border-green-500/20 rounded-xl p-4 mb-6 text-left text-sm">
+        <p class="text-green-300 font-medium mb-1">⚠️ Svarbu:</p>
+        <p class="text-slate-400">
+          Išsaugokite savo Google Authenticator paskyrą – tai vienintelis
+          būdas prisijungti. Jei prarasite telefoną, susisiekite su administratoriumi.
+        </p>
+      </div>
+
+      <div class="flex items-center justify-center gap-2 text-slate-500 text-sm">
+        <div class="w-4 h-4 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+        Nukreipiama…
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================
+     MODALAS – PRISIJUNGIMAS
+============================================= -->
+<div id="login-modal" class="modal-overlay" onclick="closeLoginOnBg(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+
+    <button onclick="closeLogin()"
+            class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 hover:bg-white/10
+                   flex items-center justify-center text-slate-400 hover:text-white transition">
+      ✕
+    </button>
+
+    <!-- 1 žingsnis: username + password -->
+    <div id="login-step-1">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/25
+                    flex items-center justify-center text-2xl mx-auto mb-4">🔑</div>
+        <h2 class="text-xl font-bold text-white mb-1">Prisijungti</h2>
+        <p class="text-slate-400 text-sm">Įveskite savo prisijungimo duomenis</p>
+      </div>
+
+      <div class="space-y-4 mb-4">
+        <div>
+          <label class="block text-slate-300 text-sm font-medium mb-1.5">Vartotojo vardas</label>
+          <input id="login-username" type="text" class="input-glow" placeholder="jūsų_vardas"
+                 autocomplete="username"
+                 onkeydown="if(event.key==='Enter') document.getElementById('login-password').focus()" />
+        </div>
+        <div>
+          <label class="block text-slate-300 text-sm font-medium mb-1.5">Slaptažodis</label>
+          <input id="login-password" type="password" class="input-glow" placeholder="••••••••"
+                 autocomplete="current-password"
+                 onkeydown="if(event.key==='Enter') submitLogin()" />
+        </div>
+      </div>
+
+      <div id="login-error" class="text-red-400 text-xs mb-3 hidden text-center"></div>
+
+      <button id="btn-login" onclick="submitLogin()"
+              class="btn-primary w-full justify-center py-3">
+        <span id="btn-login-text">Tęsti →</span>
+      </button>
+
+      <p class="text-center text-xs text-slate-600 mt-4">
+        Neturite paskyros?
+        <button onclick="closeLogin(); openRegister();"
+                class="text-indigo-400 hover:text-indigo-300">Registruotis</button>
+      </p>
+    </div>
+
+    <!-- 2 žingsnis: TOTP -->
+    <div id="login-step-2" class="hidden">
+      <div class="text-center mb-6">
+        <div class="w-14 h-14 rounded-2xl bg-green-500/15 border border-green-500/25
+                    flex items-center justify-center text-2xl mx-auto mb-4">📱</div>
+        <h2 class="text-xl font-bold text-white mb-1">Google Authenticator</h2>
+        <p class="text-slate-400 text-sm">
+          Atidarykite programėlę ir įveskite 6 skaitmenų kodą
+        </p>
+      </div>
+
+      <div class="flex justify-center gap-2 mb-4" id="login-otp-inputs">
+        <input type="tel" maxlength="1" class="otp-input" oninput="loginOtpMove(this,0)" onkeydown="loginOtpBack(event,0)" />
+        <input type="tel" maxlength="1" class="otp-input" oninput="loginOtpMove(this,1)" onkeydown="loginOtpBack(event,1)" />
+        <input type="tel" maxlength="1" class="otp-input" oninput="loginOtpMove(this,2)" onkeydown="loginOtpBack(event,2)" />
+        <input type="tel" maxlength="1" class="otp-input" oninput="loginOtpMove(this,3)" onkeydown="loginOtpBack(event,3)" />
+        <input type="tel" maxlength="1" class="otp-input" oninput="loginOtpMove(this,4)" onkeydown="loginOtpBack(event,4)" />
+        <input type="tel" maxlength="1" class="otp-input" oninput="loginOtpMove(this,5)" onkeydown="loginOtpBack(event,5)" />
+      </div>
+
+      <div id="login-otp-error" class="text-red-400 text-xs text-center mb-3 hidden"></div>
+
+      <button id="btn-login-2fa" onclick="submitLoginTotp()"
+              class="btn-primary w-full justify-center py-3">
+        <span id="btn-login-2fa-text">Prisijungti</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================
+     JAVASCRIPT
+============================================= -->
+<script>
+  /* =============================================
+     CANVAS ŽVAIGŽDINĖ ANIMACIJA
+  ============================================= */
+  (function() {
+    const canvas = document.getElementById('canvas-bg');
+    const ctx = canvas.getContext('2d');
+    let W, H, stars = [];
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function createStars(n) {
+      stars = [];
+      for (let i = 0; i < n; i++) {
+        stars.push({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          r: Math.random() * 1.2 + .2,
+          a: Math.random(),
+          speed: Math.random() * .003 + .001,
+          drift: (Math.random() - .5) * .15,
+        });
+      }
+    }
+    createStars(200);
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      stars.forEach(s => {
+        s.a += s.speed;
+        s.x += s.drift;
+        if (s.x < 0) s.x = W;
+        if (s.x > W) s.x = 0;
+        const alpha = (Math.sin(s.a) + 1) / 2 * .6 + .1;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(148,163,184,${alpha})`;
+        ctx.fill();
+      });
+      requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  /* =============================================
+     TYPING ANIMACIJA
+  ============================================= */
+  (function() {
+    const phrases = [
+      'galingų šifravimu',
+      'Google Authenticator apsauga',
+      'srautiniu failų šifravimu',
+      'pilna privatumu',
+    ];
+    let pi = 0, ci = 0, deleting = false, pauseFrames = 0;
+    const el = document.getElementById('typed-text');
+
+    function tick() {
+      const phrase = phrases[pi];
+      if (pauseFrames > 0) { pauseFrames--; setTimeout(tick, 80); return; }
+
+      if (!deleting) {
+        el.textContent = phrase.slice(0, ++ci);
+        if (ci === phrase.length) { pauseFrames = 30; deleting = true; }
+        setTimeout(tick, 70);
+      } else {
+        el.textContent = phrase.slice(0, --ci);
+        if (ci === 0) { deleting = false; pi = (pi + 1) % phrases.length; }
+        setTimeout(tick, 35);
+      }
+    }
+    setTimeout(tick, 1200);
+  })();
+
+  /* =============================================
+     SCROLL REVEAL
+  ============================================= */
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); }
+    });
+  }, { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  /* =============================================
+     VIETŲ KROVIMAS
+  ============================================= */
+  let _slots = { used: 0, total: 10, remaining: 10 };
+
+  async function loadSlots() {
+    try {
+      const r = await fetch('/api/auth/register/slots');
+      if (r.ok) {
+        _slots = await r.json();
+        updateSlotsUI();
+      }
+    } catch(e) {
+      // Serveris nepasiekiamas – demo reikšmės
+      _slots = { used: 3, total: 10, remaining: 7 };
+      updateSlotsUI();
+    }
+  }
+
+  function updateSlotsUI() {
+    const { used, total, remaining } = _slots;
+    const pct = Math.round(used / total * 100);
+
+    // Hero
+    const navRem = document.getElementById('nav-remaining');
+    if (navRem) navRem.textContent = remaining;
+
+    // Urgency sekcija
+    const urgEl = document.getElementById('urgency-remaining');
+    if (urgEl) {
+      urgEl.textContent = remaining;
+      urgEl.className = remaining <= 3
+        ? 'text-red-400 animate-pulse'
+        : remaining <= 6 ? 'text-amber-400' : 'text-green-400';
+    }
+
+    // Progress bar
+    const bar = document.getElementById('spots-bar');
+    if (bar) bar.style.width = pct + '%';
+
+    const lbl = document.getElementById('progress-label');
+    if (lbl) lbl.textContent = `${used} / ${total} užimta`;
+
+    // Limitų sekcija
+    const bigRem = document.getElementById('remaining-big');
+    if (bigRem) {
+      bigRem.textContent = remaining;
+      bigRem.className = `text-4xl font-black mb-1 ${
+        remaining === 0 ? 'text-red-400'
+        : remaining <= 3 ? 'text-amber-400 animate-pulse'
+        : 'text-green-400'
+      }`;
+    }
+    const hint = document.getElementById('remaining-hint');
+    if (hint) {
+      hint.textContent = remaining === 0
+        ? 'Sistema užpildyta!'
+        : remaining <= 3 ? '⚠️ Beveik pilna!'
+        : 'Registruokitės dabar';
+    }
+
+    // Modalas
+    const modalRem = document.getElementById('modal-remaining');
+    if (modalRem) modalRem.textContent = `${remaining} / ${total}`;
+  }
+
+  loadSlots();
+
+  /* =============================================
+     REGISTRO MODALAS
+  ============================================= */
+  let setupToken = null;
+
+  function openRegister() {
+    loadSlots();
+    document.getElementById('register-modal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('input-username').focus(), 350);
+  }
+  function closeRegister() {
+    document.getElementById('register-modal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  function closeRegisterOnBg(e) {
+    if (e.target === document.getElementById('register-modal')) closeRegister();
+  }
+
+  function validateUsernameInput(inp) {
+    const val = inp.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    inp.value = val;
+    const hint = document.getElementById('username-hint');
+    const err  = document.getElementById('username-error');
+    err.classList.add('hidden');
+    if (val.length > 0 && val.length < 3) {
+      hint.textContent = `${val.length}/50 – per trumpas (min. 3)`;
+      hint.className = 'mt-1.5 text-xs text-amber-500';
+    } else if (val.length >= 3) {
+      hint.textContent = `${val.length}/50 ✓`;
+      hint.className = 'mt-1.5 text-xs text-green-500';
+    } else {
+      hint.textContent = '3–50 simbolių · tik mažos raidės, skaičiai, _ ir -';
+      hint.className = 'mt-1.5 text-xs text-slate-600';
+    }
+  }
+
+  async function startRegister() {
+    const username = document.getElementById('input-username').value.trim().toLowerCase();
+    const errEl = document.getElementById('username-error');
+    const btn   = document.getElementById('btn-step1');
+    const btnTxt = document.getElementById('btn-step1-text');
+
+    errEl.classList.add('hidden');
+
+    if (!username || username.length < 3) {
+      errEl.textContent = 'Vartotojo vardas per trumpas (min. 3 simboliai).';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
+
+    try {
+      const r = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+
+      const data = await r.json();
+
+      if (!r.ok) {
+        errEl.textContent = data.detail || 'Klaida. Bandykite dar kartą.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      // Sėkmė – einame į 2 žingsnį
+      setupToken = data.setup_token;
+      document.getElementById('qr-img').src = 'data:image/png;base64,' + data.qr_code_base64;
+      document.getElementById('totp-uri-text').textContent = data.totp_uri;
+
+      // Animuotas perėjimas
+      goToStep(2);
+
+      // Fokusuojame pirmą OTP laukelį
+      setTimeout(() => {
+        const inputs = document.querySelectorAll('#otp-inputs .otp-input');
+        if (inputs[0]) inputs[0].focus();
+      }, 300);
+
+    } catch(e) {
+      errEl.textContent = 'Serveris nepasiekiamas. Bandykite vėliau.';
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btnTxt.textContent = 'Tęsti →';
+    }
+  }
+
+  async function confirmRegister() {
+    const inputs  = document.querySelectorAll('#otp-inputs .otp-input');
+    const code    = Array.from(inputs).map(i => i.value).join('');
+    const errEl   = document.getElementById('otp-error');
+    const btn     = document.getElementById('btn-step2');
+    const btnTxt  = document.getElementById('btn-step2-text');
+    const username = document.getElementById('input-username').value.trim().toLowerCase();
+
+    errEl.classList.add('hidden');
+
+    if (code.length !== 6 || !/^\d{6}$/.test(code)) {
+      errEl.textContent = 'Įveskite visus 6 skaitmenis.';
+      errEl.classList.remove('hidden');
+      inputs[0].focus();
+      return;
+    }
+
+    btn.disabled = true;
+    btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
+
+    try {
+      const r = await fetch('/api/auth/register/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ setup_token: setupToken, totp_code: code }),
+      });
+
+      const data = await r.json();
+
+      if (!r.ok) {
+        errEl.textContent = data.detail || 'Neteisingas kodas.';
+        errEl.classList.remove('hidden');
+        // Išvalome ir fokusuojame iš naujo
+        inputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+        inputs[0].focus();
+        return;
+      }
+
+      // Sėkmė!
+      document.getElementById('success-username').textContent = data.username || username;
+      goToStep(3);
+
+      // Po 2s nukreipiame į dashboard
+      setTimeout(() => { window.location.href = '/dashboard.html'; }, 2200);
+
+    } catch(e) {
+      errEl.textContent = 'Serverio klaida. Bandykite dar kartą.';
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btnTxt.textContent = 'Patvirtinti paskyrą';
+    }
+  }
+
+  function backToStep1() {
+    goToStep(1);
+    setupToken = null;
+  }
+
+  function goToStep(n) {
+    [1,2,3].forEach(i => {
+      const el = document.getElementById('step-' + i);
+      if (el) el.classList.toggle('hidden', i !== n);
+      const dot = document.getElementById('dot-' + i);
+      if (dot) {
+        dot.className = 'step-dot';
+        if (i < n)  dot.classList.add('done');
+        if (i === n) dot.classList.add('active');
+      }
+    });
+  }
+
+  /* =============================================
+     OTP LAUKELIŲ NAVIGACIJA (registracija)
+  ============================================= */
+  function otpMove(el, idx) {
+    const inputs = document.querySelectorAll('#otp-inputs .otp-input');
+    el.value = el.value.replace(/\D/g, '').slice(-1);
+    el.classList.toggle('filled', el.value !== '');
+    if (el.value && idx < 5) inputs[idx + 1].focus();
+    // Auto-submit kai 6 skaitmenys užpildyti
+    const code = Array.from(inputs).map(i => i.value).join('');
+    if (code.length === 6) confirmRegister();
+  }
+  function otpBack(e, idx) {
+    const inputs = document.querySelectorAll('#otp-inputs .otp-input');
+    if (e.key === 'Backspace' && !inputs[idx].value && idx > 0) inputs[idx - 1].focus();
+  }
+
+  /* =============================================
+     PRISIJUNGIMO MODALAS
+  ============================================= */
+  let loginTempToken = null;
+
+  function openLogin() {
+    document.getElementById('login-modal').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    // Reset
+    document.getElementById('login-step-1').classList.remove('hidden');
+    document.getElementById('login-step-2').classList.add('hidden');
+    document.getElementById('login-error').classList.add('hidden');
+    document.getElementById('login-username').value = '';
+    document.getElementById('login-password').value = '';
+    setTimeout(() => document.getElementById('login-username').focus(), 350);
+  }
+  function closeLogin() {
+    document.getElementById('login-modal').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  function closeLoginOnBg(e) {
+    if (e.target === document.getElementById('login-modal')) closeLogin();
+  }
+
+  async function submitLogin() {
+    const username = document.getElementById('login-username').value.trim().toLowerCase();
+    const password = document.getElementById('login-password').value;
+    const errEl    = document.getElementById('login-error');
+    const btn      = document.getElementById('btn-login');
+    const btnTxt   = document.getElementById('btn-login-text');
+
+    errEl.classList.add('hidden');
+    if (!username || !password) {
+      errEl.textContent = 'Įveskite vartotojo vardą ir slaptažodį.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
+
+    try {
+      const r = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await r.json();
+
+      if (!r.ok) {
+        errEl.textContent = data.detail || 'Neteisingi duomenys.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      loginTempToken = data.temp_token;
+      // Pereiname į TOTP žingsnį
+      document.getElementById('login-step-1').classList.add('hidden');
+      document.getElementById('login-step-2').classList.remove('hidden');
+      setTimeout(() => {
+        const li = document.querySelectorAll('#login-otp-inputs .otp-input');
+        if (li[0]) li[0].focus();
+      }, 200);
+
+    } catch(e) {
+      errEl.textContent = 'Serveris nepasiekiamas.';
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btnTxt.textContent = 'Tęsti →';
+    }
+  }
+
+  async function submitLoginTotp() {
+    const inputs = document.querySelectorAll('#login-otp-inputs .otp-input');
+    const code   = Array.from(inputs).map(i => i.value).join('');
+    const errEl  = document.getElementById('login-otp-error');
+    const btn    = document.getElementById('btn-login-2fa');
+    const btnTxt = document.getElementById('btn-login-2fa-text');
+
+    errEl.classList.add('hidden');
+
+    if (code.length !== 6) {
+      errEl.textContent = 'Įveskite visus 6 skaitmenis.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+
+    btn.disabled = true;
+    btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
+
+    try {
+      const r = await fetch('/api/auth/verify-2fa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ temp_token: loginTempToken, totp_code: code }),
+      });
+      const data = await r.json();
+
+      if (!r.ok) {
+        errEl.textContent = data.detail || 'Neteisingas kodas.';
+        errEl.classList.remove('hidden');
+        inputs.forEach(i => { i.value = ''; i.classList.remove('filled'); });
+        inputs[0].focus();
+        return;
+      }
+
+      // Sėkmė – nukreipiame į dashboard
+      window.location.href = '/dashboard.html';
+
+    } catch(e) {
+      errEl.textContent = 'Serverio klaida.';
+      errEl.classList.remove('hidden');
+    } finally {
+      btn.disabled = false;
+      btnTxt.textContent = 'Prisijungti';
+    }
+  }
+
+  /* Login OTP laukeliai */
+  function loginOtpMove(el, idx) {
+    const inputs = document.querySelectorAll('#login-otp-inputs .otp-input');
+    el.value = el.value.replace(/\D/g, '').slice(-1);
+    el.classList.toggle('filled', el.value !== '');
+    if (el.value && idx < 5) inputs[idx + 1].focus();
+    const code = Array.from(inputs).map(i => i.value).join('');
+    if (code.length === 6) submitLoginTotp();
+  }
+  function loginOtpBack(e, idx) {
+    const inputs = document.querySelectorAll('#login-otp-inputs .otp-input');
+    if (e.key === 'Backspace' && !inputs[idx].value && idx > 0) inputs[idx - 1].focus();
+  }
+
+  /* =============================================
+     KLAVIATŪROS SHORTCUTS
+  ============================================= */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeRegister();
+      closeLogin();
+    }
+  });
+
+</script>
+</body>
+</html>

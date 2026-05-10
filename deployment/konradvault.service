@@ -1,0 +1,127 @@
+# ==============================================================================
+#  KonradVault – systemd service unit
+#  Oracle Cloud Always Free (ARM Ubuntu 22.04)
+#
+#  DIEGIMAS:
+#    sudo cp deployment/konradvault.service /etc/systemd/system/
+#    sudo systemctl daemon-reload
+#    sudo systemctl enable konradvault
+#    sudo systemctl start konradvault
+#
+#  VALDYMAS:
+#    sudo systemctl status  konradvault   # būsena
+#    sudo systemctl start   konradvault   # paleisti
+#    sudo systemctl stop    konradvault   # sustabdyti
+#    sudo systemctl restart konradvault   # perkrauti
+#    sudo journalctl -u konradvault -f    # live logai
+#    sudo journalctl -u konradvault -n 100 --no-pager  # paskutinės 100 eilučių
+# ==============================================================================
+
+[Unit]
+# Žmogiškai skaitomas aprašymas (matomas systemctl status)
+Description=KonradVault – šifruota failų saugykla
+
+# Startuoja tik po šių paslaugų – DB ir tinklas turi veikti
+After=network.target
+
+# Jei yra – palauk kol network DNS veikia (Oracle Cloud specifika)
+Wants=network-online.target
+
+
+[Service]
+# ── Vartotojas ir grupė ────────────────────────────────────────────────────────
+# Atskiras sistemos vartotojas (be shell, be namų direktorijos)
+# Sukuriamas deploy.sh metu: useradd --system --no-create-home --shell /bin/false konradvault
+User=konradvault
+Group=konradvault
+
+# ── Darbo direktorija ──────────────────────────────────────────────────────────
+WorkingDirectory=/opt/konradvault/backend
+
+# ── Paleidimo komanda ──────────────────────────────────────────────────────────
+# Pilni keliai (systemd nepaveldoja PATH)
+# --workers 1       → SQLite + Fernet nėra thread-safe tarp kelių procesų
+# --loop uvloop     → greičiausias Python async event loop (ARM veikia gerai)
+# --access-log -    → logai į stdout (journald juos surenka)
+# --no-access-log   → alternatyva jei journald per daug triukšmo
+ExecStart=/opt/konradvault/venv/bin/uvicorn \
+    app.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 1 \
+    --loop uvloop \
+    --log-level info \
+    --access-log \
+    --no-use-colors
+
+# ── Graceful sustabdymas ───────────────────────────────────────────────────────
+# SIGTERM → Uvicorn užbaigia esamus requestus (iki 30s), tada sustoja
+ExecStop=/bin/kill -TERM $MAINPID
+TimeoutStopSec=30
+
+# ── Aplinkos kintamieji ────────────────────────────────────────────────────────
+# .env failas nuskaitomas pydantic-settings automatiškai iš WorkingDirectory
+# Bet jei reikia – galima nurodyti kitą kelią:
+# EnvironmentFile=/etc/konradvault/.env
+
+# Pythono stdout/stderr iš karto į journald (ne buferintas)
+Environment=PYTHONUNBUFFERED=1
+
+# Aiški locale (apsauga nuo encoding problemų su lietuviškais simboliais)
+Environment=LANG=en_US.UTF-8
+Environment=LC_ALL=en_US.UTF-8
+
+# ── Paleidimas iš naujo ────────────────────────────────────────────────────────
+# Automatiškai perkraunama jei procesas lūžta
+Restart=on-failure
+
+# Palaukiam 5s prieš kiekvieną perkrovimą (apsauga nuo restart loop)
+RestartSec=5s
+
+# Jei per 10min daugiau nei 5 kartai lūžo – sisteminis fail (journald įrašo)
+StartLimitInterval=10min
+StartLimitBurst=5
+
+# ── Proceso ribojimas ──────────────────────────────────────────────────────────
+# Maksimalus atidarytų failų skaičius (default Linux yra 1024 – per mažai)
+# Svarbu: kiekvienas concurrent download atidaro šifruotą failą
+LimitNOFILE=65536
+
+# ── Saugumo izoliacija ─────────────────────────────────────────────────────────
+# Draudžiame sistemui rašyti į /usr, /boot, /etc (išskyrus .env)
+ProtectSystem=strict
+
+# Neskaitomos namų direktorijos (mūsų procesui nereikia)
+ProtectHome=true
+
+# Privati /tmp (izoliacinis temp katalogas)
+PrivateTmp=true
+
+# Draudžiame kernel module įkėlimą
+ProtectKernelModules=true
+
+# Draudžiame rašyti į kernel tuners
+ProtectKernelTunables=true
+
+# Draudžiame keisti control groups
+ProtectControlGroups=true
+
+# Leidžiame rašyti tik į šias direktorijas:
+ReadWritePaths=/var/konradvault /var/log/konradvault /opt/konradvault/backend
+
+# Procesui nereikalingi capabilities (root teisės) – visi atšaukiami
+CapabilityBoundingSet=
+AmbientCapabilities=
+NoNewPrivileges=true
+
+# Draudžiame realaus laiko prioritetą
+RestrictRealtime=true
+
+# Draudžiame privilegijuotus syscall'us (seccomp)
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+
+[Install]
+# Paslauga paleidžiama multi-user.target lygyje (standartinis Linux boot)
+WantedBy=multi-user.target

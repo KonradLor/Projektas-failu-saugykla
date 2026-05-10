@@ -1,0 +1,30 @@
+# ============================================
+# KonradVault - Python priklausomybės
+# ============================================
+# Diegimas: pip install -r requirements.txt
+
+# ----- FastAPI ekosistema -----
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-multipart==0.0.12
+
+# ----- Pydantic + nustatymai -----
+pydantic==2.9.2
+pydantic-settings==2.6.0
+
+# ----- Duomenų bazė -----
+sqlalchemy==2.0.35
+alembic==1.13.3
+
+# ----- Šifravimas + autentifikacija -----
+cryptography==43.0.1
+argon2-cffi==23.1.0
+pyotp==2.9.0
+qrcode[pil]==8.0
+
+# ----- Failų apdorojimas (preview / thumbnails) -----
+# Pillow naudojamas paveikslėlių thumbnail'ams (utils/thumbnails.py)
+Pillow==10.4.0
+# pdf2image išjungtas – PDF preview šiuo metu daromas iframe per /preview endpoint'ą
+# Jei prireiks PDF thumbnail'ų pirmojo puslapio – atkomentuokite:
+# pdf2image==1.17.0

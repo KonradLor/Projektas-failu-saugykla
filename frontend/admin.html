@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="lt">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KonradVault — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: #060612; color: #e2e8f0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      overflow: hidden;
+    }
+
+    /* ─── Top bar ───────────────────────────────────────────── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+      height: 56px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 1.5rem;
+      background: rgba(6,6,18,.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(99,102,241,.2);
+    }
+    .logo {
+      display: flex; align-items: center; gap: .5rem;
+      font-weight: 700; font-size: 1.05rem; letter-spacing: -.02em;
+      text-decoration: none; color: inherit;
+    }
+    .logo-icon {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg,#6366f1,#8b5cf6);
+      border-radius: .45rem;
+      display: flex; align-items: center; justify-content: center; font-size: .9rem;
+    }
+    .logo span.accent { color: #818cf8; }
+    .admin-badge {
+      display: inline-flex; align-items: center; gap: .3rem;
+      padding: .15rem .55rem; border-radius: 999px; font-size: .7rem; font-weight: 700;
+      background: rgba(239,68,68,.15); color: #f87171;
+      border: 1px solid rgba(239,68,68,.3); text-transform: uppercase; letter-spacing: .05em;
+    }
+
+    /* ─── Layout ────────────────────────────────────────────── */
+    .layout {
+      display: flex; height: 100vh; padding-top: 56px;
+    }
+
+    /* ─── Sidebar ───────────────────────────────────────────── */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: rgba(8,8,24,.9);
+      border-right: 1px solid rgba(99,102,241,.15);
+      overflow-y: auto; padding: 1rem .75rem;
+      display: flex; flex-direction: column; gap: .25rem;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .6rem .85rem; border-radius: .6rem;
+      font-size: .875rem; font-weight: 500; cursor: pointer;
+      color: #94a3b8; transition: all .15s; text-decoration: none; border: none;
+      background: transparent; width: 100%; text-align: left;
+    }
+    .nav-item:hover { background: rgba(99,102,241,.1); color: #c7d2fe; }
+    .nav-item.active { background: rgba(99,102,241,.18); color: #818cf8; }
+    .nav-sep { height: 1px; background: rgba(255,255,255,.06); margin: .5rem 0; }
+
+    /* ─── Main area ─────────────────────────────────────────── */
+    .main {
+      flex: 1; overflow-y: auto; padding: 2rem 2.5rem;
+    }
+
+    /* ─── Glass card ────────────────────────────────────────── */
+    .glass {
+      background: rgba(15,15,40,.75);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(99,102,241,.2);
+      border-radius: 1rem;
+    }
+
+    /* ─── Stats grid ────────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem; margin-bottom: 2rem;
+    }
+    .stat-card {
+      padding: 1.25rem 1.5rem; border-radius: .85rem;
+      background: rgba(15,15,40,.75);
+      border: 1px solid rgba(99,102,241,.18);
+    }
+    .stat-label { font-size: .75rem; color: #64748b; text-transform: uppercase; letter-spacing: .06em; }
+    .stat-value { font-size: 2rem; font-weight: 800; margin: .25rem 0 0; }
+    .stat-sub   { font-size: .78rem; color: #64748b; margin-top: .15rem; }
+
+    /* ─── Table ─────────────────────────────────────────────── */
+    .tbl { width: 100%; border-collapse: collapse; }
+    .tbl thead th {
+      padding: .65rem 1rem; text-align: left;
+      font-size: .75rem; font-weight: 600; color: #64748b;
+      text-transform: uppercase; letter-spacing: .06em;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .tbl tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,.04);
+      transition: background .12s;
+    }
+    .tbl tbody tr:last-child { border-bottom: none; }
+    .tbl tbody tr:hover { background: rgba(99,102,241,.05); }
+    .tbl tbody td { padding: .9rem 1rem; font-size: .875rem; }
+
+    /* ─── Badges ────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: .3rem;
+      padding: .18rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 600;
+    }
+    .badge.green  { background: rgba(16,185,129,.15); color: #34d399; border: 1px solid rgba(16,185,129,.25); }
+    .badge.red    { background: rgba(239,68,68,.15);  color: #f87171; border: 1px solid rgba(239,68,68,.25); }
+    .badge.blue   { background: rgba(99,102,241,.15); color: #818cf8; border: 1px solid rgba(99,102,241,.25); }
+    .badge.yellow { background: rgba(245,158,11,.15); color: #fbbf24; border: 1px solid rgba(245,158,11,.25); }
+
+    /* ─── Buttons ───────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: .4rem;
+      padding: .45rem .9rem; border-radius: .55rem;
+      font-size: .8rem; font-weight: 600; cursor: pointer;
+      border: none; transition: all .15s;
+    }
+    .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; }
+    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-danger  { background: rgba(239,68,68,.15); color:#f87171; border:1px solid rgba(239,68,68,.25); }
+    .btn-danger:hover  { background: rgba(239,68,68,.25); }
+    .btn-ghost   { background: rgba(99,102,241,.1);  color:#818cf8; border:1px solid rgba(99,102,241,.2); }
+    .btn-ghost:hover   { background: rgba(99,102,241,.2); }
+
+    /* ─── Modal ─────────────────────────────────────────────── */
+    .modal-bg {
+      display: none; position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(6px);
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: #0d0d28; border: 1px solid rgba(99,102,241,.3);
+      border-radius: 1.1rem; padding: 2rem; width: 100%; max-width: 460px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal h3 { margin: 0 0 1.25rem; font-size: 1.1rem; font-weight: 700; }
+
+    /* ─── Form ──────────────────────────────────────────────── */
+    label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: .35rem; }
+    input[type=text], input[type=password], select {
+      width: 100%; padding: .65rem .9rem; border-radius: .6rem;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
+      color: #e2e8f0; font-size: .9rem; outline: none; transition: border .15s;
+    }
+    input:focus, select:focus { border-color: #6366f1; }
+    .form-group { margin-bottom: 1rem; }
+
+    /* ─── Storage bar ───────────────────────────────────────── */
+    .stor-bg  { height: 6px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden; }
+    .stor-bar { height: 100%; border-radius: 999px; background: linear-gradient(90deg,#6366f1,#8b5cf6); transition: width .5s; }
+
+    /* ─── Toast ─────────────────────────────────────────────── */
+    #toast-container {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      z-index: 9999; display: flex; flex-direction: column; gap: .5rem;
+    }
+    .toast {
+      padding: .75rem 1.25rem; border-radius: .75rem; font-size: .875rem;
+      font-weight: 500; min-width: 240px; max-width: 360px;
+      backdrop-filter: blur(16px); border: 1px solid transparent;
+      animation: slideIn .25s ease; pointer-events: auto;
+    }
+    .toast.ok  { background:rgba(16,185,129,.15); border-color:rgba(16,185,129,.3); color:#34d399; }
+    .toast.err { background:rgba(239,68,68,.15);  border-color:rgba(239,68,68,.3);  color:#f87171; }
+    .toast.inf { background:rgba(99,102,241,.15); border-color:rgba(99,102,241,.3); color:#818cf8; }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* ─── Skeleton ──────────────────────────────────────────── */
+    @keyframes shimmer { 0%{background-position:-600px 0} 100%{background-position:600px 0} }
+    .skel {
+      border-radius:.4rem;
+      background: linear-gradient(90deg,rgba(255,255,255,.05) 25%,rgba(255,255,255,.1) 50%,rgba(255,255,255,.05) 75%);
+      background-size:600px 100%; animation:shimmer 1.6s infinite;
+    }
+
+    /* ─── Section titles ────────────────────────────────────── */
+    .section-title {
+      font-size: 1rem; font-weight: 700; margin: 0 0 1rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+
+    /* ─── Empty ─────────────────────────────────────────────── */
+    .empty { text-align:center; padding:3rem 1rem; color:#64748b; font-size:.9rem; }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:.75rem;">
+    <a href="/dashboard.html" class="logo">
+      <div class="logo-icon">🔐</div>
+      Konrad<span class="accent">Vault</span>
+    </a>
+    <span class="admin-badge">🛡 Admin</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <span id="nav-user" style="font-size:.85rem;color:#64748b;"></span>
+    <button class="btn btn-ghost" style="font-size:.78rem;" onclick="goToDashboard()">← Dashboard</button>
+    <button class="btn btn-danger" style="font-size:.78rem;" onclick="logout()">Atsijungti</button>
+  </div>
+</header>
+
+<!-- Layout -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <button class="nav-item active" id="nav-overview" onclick="setView('overview')">
+      📊 Apžvalga
+    </button>
+    <button class="nav-item" id="nav-users" onclick="setView('users')">
+      👥 Vartotojai
+    </button>
+    <div class="nav-sep"></div>
+    <button class="nav-item" onclick="refreshAll()" style="color:#64748b;font-size:.8rem;">
+      🔄 Atnaujinti
+    </button>
+  </nav>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- ── Overview view ──────────────────────────────────── -->
+    <div id="view-overview">
+      <h2 style="font-size:1.3rem;font-weight:800;margin:0 0 1.5rem;">Sistemos apžvalga</h2>
+
+      <!-- Stats cards -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card skel" style="height:95px;"></div>
+        <div class="stat-card skel" style="height:95px;"></div>
+        <div class="stat-card skel" style="height:95px;"></div>
+        <div class="stat-card skel" style="height:95px;"></div>
+      </div>
+
+      <!-- Storage usage per user -->
+      <div class="glass" style="padding:1.5rem;">
+        <div class="section-title">
+          <span>💾 Disko vietos naudojimas vartotojams</span>
+          <span id="storage-total-label" style="font-size:.8rem;color:#64748b;"></span>
+        </div>
+        <div id="storage-list">
+          <div class="skel" style="height:2.5rem;border-radius:.5rem;margin-bottom:.5rem;"></div>
+          <div class="skel" style="height:2.5rem;border-radius:.5rem;margin-bottom:.5rem;"></div>
+          <div class="skel" style="height:2.5rem;border-radius:.5rem;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Users view ──────────────────────────────────────── -->
+    <div id="view-users" style="display:none;">
+      <div class="section-title" style="margin-bottom:1.5rem;">
+        <h2 style="font-size:1.3rem;font-weight:800;margin:0;">Vartotojai</h2>
+        <button class="btn btn-primary" onclick="openCreateUser()">+ Pridėti vartotoją</button>
+      </div>
+
+      <div class="glass" style="overflow:hidden;">
+        <div id="users-table-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>Vartotojas</th>
+                <th>Rolė</th>
+                <th>Failai</th>
+                <th>Vieta</th>
+                <th>Registracija</th>
+                <th>Statusas</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody">
+              <tr><td colspan="7"><div class="skel" style="height:3rem;margin:.5rem;border-radius:.4rem;"></div></td></tr>
+              <tr><td colspan="7"><div class="skel" style="height:3rem;margin:.5rem;border-radius:.4rem;"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="users-empty" class="empty" style="display:none;">Vartotojų nerasta.</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════════════════ -->
+
+<!-- Create user modal -->
+<div class="modal-bg" id="modal-create-user">
+  <div class="modal">
+    <h3>➕ Sukurti vartotoją</h3>
+    <div class="form-group">
+      <label>Vartotojo vardas</label>
+      <input type="text" id="cu-username" placeholder="vardas" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label>Rolė</label>
+      <select id="cu-role">
+        <option value="user">Vartotojas</option>
+        <option value="admin">Administratorius</option>
+      </select>
+    </div>
+    <div id="cu-qr-step" style="display:none;">
+      <p style="font-size:.85rem;color:#94a3b8;margin:0 0 1rem;">
+        📱 Nuskenuokite QR kodą Google Authenticator programėlėje, tada įveskite sugeneruotą kodą:
+      </p>
+      <img id="cu-qr-img" src="" alt="QR" style="width:200px;height:200px;border-radius:.75rem;margin:0 auto 1rem;display:block;background:#fff;" />
+      <div style="display:flex;gap:.5rem;justify-content:center;margin-bottom:1rem;" id="cu-otp-inputs">
+        <input type="text" maxlength="1" inputmode="numeric" class="otp-dig"
+               style="width:42px;height:48px;text-align:center;font-size:1.3rem;font-weight:700;border-radius:.5rem;" />
+        <input type="text" maxlength="1" inputmode="numeric" class="otp-dig"
+               style="width:42px;height:48px;text-align:center;font-size:1.3rem;font-weight:700;border-radius:.5rem;" />
+        <input type="text" maxlength="1" inputmode="numeric" class="otp-dig"
+               style="width:42px;height:48px;text-align:center;font-size:1.3rem;font-weight:700;border-radius:.5rem;" />
+        <input type="text" maxlength="1" inputmode="numeric" class="otp-dig"
+               style="width:42px;height:48px;text-align:center;font-size:1.3rem;font-weight:700;border-radius:.5rem;" />
+        <input type="text" maxlength="1" inputmode="numeric" class="otp-dig"
+               style="width:42px;height:48px;text-align:center;font-size:1.3rem;font-weight:700;border-radius:.5rem;" />
+        <input type="text" maxlength="1" inputmode="numeric" class="otp-dig"
+               style="width:42px;height:48px;text-align:center;font-size:1.3rem;font-weight:700;border-radius:.5rem;" />
+      </div>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-create-user')">Atšaukti</button>
+      <button class="btn btn-primary" id="cu-btn" onclick="createUserStep()">Tęsti →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset 2FA confirm modal -->
+<div class="modal-bg" id="modal-reset-2fa">
+  <div class="modal">
+    <h3>🔄 Atstatyti 2FA</h3>
+    <p style="color:#94a3b8;font-size:.875rem;margin:0 0 1.5rem;line-height:1.6;">
+      Vartotojui <strong id="r2fa-username" style="color:#e2e8f0;"></strong> bus sugeneruotas
+      naujas TOTP sekretas. Senas sekretas taps negaliojančiu.<br><br>
+      Vartotojas turės iš naujo nuskaityti QR kodą.
+    </p>
+    <div id="r2fa-result" style="display:none;text-align:center;padding:1rem;">
+      <img id="r2fa-qr" src="" alt="QR" style="width:180px;height:180px;border-radius:.75rem;margin:0 auto .75rem;display:block;background:#fff;" />
+      <p style="font-size:.8rem;color:#94a3b8;margin:0;">
+        Parodykite šį QR kodą vartotojui — jis turi nuskaityti jį ir įsitikinti, kad kodai veikia.
+      </p>
+    </div>
+    <div id="r2fa-actions" style="display:flex;gap:.75rem;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reset-2fa')">Atšaukti</button>
+      <button class="btn btn-primary" onclick="confirmReset2FA()">Atstatyti 2FA</button>
+    </div>
+    <div id="r2fa-close" style="display:none;justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-primary" onclick="closeModal('modal-reset-2fa');loadUsers();">Uždaryti</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete user confirm modal -->
+<div class="modal-bg" id="modal-delete-user">
+  <div class="modal">
+    <h3>🗑️ Ištrinti vartotoją</h3>
+    <p style="color:#94a3b8;font-size:.875rem;margin:0 0 .75rem;line-height:1.6;">
+      Ištrinsite vartotoją <strong id="del-username" style="color:#f87171;"></strong>.
+    </p>
+    <div style="padding:.85rem 1rem;border-radius:.75rem;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);font-size:.82rem;color:#fca5a5;margin-bottom:1.25rem;">
+      ⚠️ Šis veiksmas yra <strong>negrįžtamas</strong>. Visi vartotojo failai bus
+      <strong>visam laikui ištrinti</strong> iš disko.
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:flex-end;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-delete-user')">Atšaukti</button>
+      <button class="btn btn-danger" onclick="confirmDeleteUser()">Ištrinti visam laikui</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════════════════ */
+let currentView = 'overview';
+let allUsers = [];
+let stats = null;
+let targetUserId = null;   // for delete / reset-2fa
+let cuSetupToken = null;   // for create-user TOTP confirm
+
+/* ═══════════════════════════════════════════════════════════════
+   API HELPER
+═══════════════════════════════════════════════════════════════ */
+async function api(method, path, body) {
+  const opts = { method, credentials: 'include', headers: {} };
+  if (body !== undefined) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  if (res.status === 401) { location.href = '/konradvault.html'; return null; }
+  if (res.status === 403) { toast('Prieiga uždrausti — tik administratoriai.', 'err'); return null; }
+  return res;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════════════════════ */
+function toast(msg, type = 'ok', ms = 3500) {
+  const c  = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HELPERS
+═══════════════════════════════════════════════════════════════ */
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function formatBytes(b) {
+  b = Number(b);
+  if (b < 1024)       return b + ' B';
+  if (b < 1048576)    return (b / 1024).toFixed(1) + ' KB';
+  if (b < 1073741824) return (b / 1048576).toFixed(2) + ' MB';
+  return (b / 1073741824).toFixed(2) + ' GB';
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('lt-LT', { year:'numeric', month:'short', day:'numeric' });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════════════════ */
+function setView(v) {
+  ['overview','users'].forEach(name => {
+    document.getElementById('view-' + name).style.display  = name === v ? '' : 'none';
+    document.getElementById('nav-'  + name).classList.toggle('active', name === v);
+  });
+  currentView = v;
+  if (v === 'overview') loadStats();
+  if (v === 'users')    loadUsers();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add('open');    }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function goToDashboard() { location.href = '/dashboard.html'; }
+
+async function logout() {
+  await api('POST', '/api/auth/logout');
+  location.href = '/konradvault.html';
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOAD STATS
+═══════════════════════════════════════════════════════════════ */
+async function loadStats() {
+  const res = await api('GET', '/api/admin/stats');
+  if (!res || !res.ok) return;
+  stats = await res.json();
+  renderStats(stats);
+}
+
+function renderStats(s) {
+  const maxMb = 2048; // per user
+
+  /* cards */
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Vartotojai</div>
+      <div class="stat-value" style="color:#818cf8;">${s.total_users ?? '—'}</div>
+      <div class="stat-sub">maks. ${s.max_users ?? 10} vietų</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Failai</div>
+      <div class="stat-value" style="color:#34d399;">${s.total_files ?? '—'}</div>
+      <div class="stat-sub">${formatBytes(s.total_storage_bytes ?? 0)} iš viso</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Aplankai</div>
+      <div class="stat-value" style="color:#fbbf24;">${s.total_folders ?? '—'}</div>
+      <div class="stat-sub">aktyvūs aplankai</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Share nuorodos</div>
+      <div class="stat-value" style="color:#f472b6;">${s.total_share_links ?? '—'}</div>
+      <div class="stat-sub">${s.active_share_links ?? 0} aktyvios</div>
+    </div>`;
+
+  /* storage per user */
+  const label = document.getElementById('storage-total-label');
+  label.textContent = `Iš viso: ${formatBytes(s.total_storage_bytes ?? 0)}`;
+
+  const list = document.getElementById('storage-list');
+  if (!s.users_storage || s.users_storage.length === 0) {
+    list.innerHTML = '<p style="color:#64748b;font-size:.85rem;padding:.5rem 0;">Nėra vartotojų.</p>';
+    return;
+  }
+
+  list.innerHTML = s.users_storage.map(u => {
+    const pct  = Math.min(100, Math.round((u.storage_used_bytes / (maxMb * 1048576)) * 100));
+    const clr  = pct > 85 ? '#f87171' : pct > 60 ? '#fbbf24' : '#6366f1';
+    return `
+      <div style="margin-bottom:.9rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;">
+          <span style="font-size:.85rem;font-weight:600;">${esc(u.username)}</span>
+          <span style="font-size:.78rem;color:#94a3b8;">${formatBytes(u.storage_used_bytes)} / ${formatBytes(maxMb * 1048576)}</span>
+        </div>
+        <div class="stor-bg">
+          <div class="stor-bar" style="width:${pct}%;background:${clr};"></div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOAD USERS
+═══════════════════════════════════════════════════════════════ */
+async function loadUsers() {
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = `<tr><td colspan="7"><div class="skel" style="height:3rem;margin:.5rem;border-radius:.4rem;"></div></td></tr>`.repeat(3);
+
+  const res = await api('GET', '/api/admin/users');
+  if (!res || !res.ok) return;
+  allUsers = await res.json();
+  renderUsers(allUsers);
+}
+
+function renderUsers(users) {
+  const tbody = document.getElementById('users-tbody');
+  const empty = document.getElementById('users-empty');
+
+  if (!users || users.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = users.map(u => {
+    const roleBadge = u.is_admin
+      ? '<span class="badge red">🛡 Admin</span>'
+      : '<span class="badge blue">👤 Vartotojas</span>';
+    const statusBadge = u.is_active
+      ? '<span class="badge green">● Aktyvus</span>'
+      : '<span class="badge yellow">● Neaktyvus</span>';
+    const storage = formatBytes(u.storage_used_bytes ?? 0);
+    const files   = u.file_count ?? '—';
+
+    return `
+      <tr>
+        <td>
+          <div style="font-weight:600;">${esc(u.username)}</div>
+          <div style="font-size:.75rem;color:#64748b;">ID: ${u.id}</div>
+        </td>
+        <td>${roleBadge}</td>
+        <td>${files}</td>
+        <td>${storage}</td>
+        <td style="font-size:.8rem;color:#94a3b8;">${formatDate(u.created_at)}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <div style="display:flex;gap:.4rem;justify-content:flex-end;">
+            <button class="btn btn-ghost" style="font-size:.75rem;padding:.35rem .6rem;"
+                    onclick="openReset2FA(${u.id},'${esc(u.username)}')">🔄 2FA</button>
+            <button class="btn btn-danger" style="font-size:.75rem;padding:.35rem .6rem;"
+                    onclick="openDeleteUser(${u.id},'${esc(u.username)}')">🗑</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CREATE USER (admin flow)
+═══════════════════════════════════════════════════════════════ */
+function openCreateUser() {
+  cuSetupToken = null;
+  document.getElementById('cu-username').value = '';
+  document.getElementById('cu-role').value = 'user';
+  document.getElementById('cu-qr-step').style.display = 'none';
+  document.getElementById('cu-btn').textContent = 'Tęsti →';
+  // reset OTP inputs
+  document.querySelectorAll('#cu-otp-inputs .otp-dig').forEach(i => i.value = '');
+  openModal('modal-create-user');
+  setTimeout(() => document.getElementById('cu-username').focus(), 50);
+}
+
+async function createUserStep() {
+  if (!cuSetupToken) {
+    /* ── 1 žingsnis: username + rolė → POST /api/admin/users → QR kodas ── */
+    const username = document.getElementById('cu-username').value.trim().toLowerCase();
+    const role     = document.getElementById('cu-role').value;
+    if (!username) { toast('Įveskite vartotojo vardą.', 'err'); return; }
+
+    const btn = document.getElementById('cu-btn');
+    btn.disabled = true; btn.textContent = 'Kraunama…';
+
+    const res = await api('POST', '/api/admin/users', {
+      username,
+      is_admin: role === 'admin',
+    });
+    btn.disabled = false;
+
+    if (!res) return;
+    if (res.status === 409) {
+      const d = await res.json().catch(()=>({}));
+      toast(d.detail || 'Toks vartotojo vardas jau egzistuoja.', 'err');
+      btn.textContent = 'Tęsti →';
+      return;
+    }
+    if (res.status === 403) {
+      const d = await res.json().catch(()=>({}));
+      toast(d.detail || 'Sistema pilna.', 'err');
+      btn.textContent = 'Tęsti →';
+      return;
+    }
+    if (!res.ok) {
+      const d = await res.json().catch(()=>({}));
+      toast(d.detail || `Klaida (${res.status}).`, 'err');
+      btn.textContent = 'Tęsti →';
+      return;
+    }
+
+    const d = await res.json();
+    cuSetupToken = d.setup_token;
+    document.getElementById('cu-qr-img').src = `data:image/png;base64,${d.qr_code_base64}`;
+
+    /* Rodyti QR žingsnį */
+    document.getElementById('cu-qr-step').style.display = '';
+    btn.textContent = 'Patvirtinti kodą';
+    initOtpInputs('#cu-otp-inputs', () => createUserStep());
+    document.querySelector('#cu-otp-inputs .otp-dig').focus();
+
+  } else {
+    /* ── 2 žingsnis: TOTP kodas → POST /api/admin/users/confirm ──
+       SVARBU: naudojame ATSKIRĄ admin endpoint'ą, kad NEPAKEISTŲ admin sesijos.
+       (Viešas /api/auth/register/confirm prisijungia kaip naujas vartotojas!) */
+    const code = [...document.querySelectorAll('#cu-otp-inputs .otp-dig')].map(i => i.value).join('');
+    if (code.length < 6) { toast('Įveskite 6 skaitmenų kodą.', 'err'); return; }
+
+    const btn = document.getElementById('cu-btn');
+    btn.disabled = true; btn.textContent = 'Tikrinama…';
+
+    const res = await api('POST', '/api/admin/users/confirm', {
+      setup_token: cuSetupToken,
+      totp_code:   code,
+    });
+    btn.disabled = false;
+    if (!res) return;
+
+    if (res.status === 429) {
+      const d = await res.json().catch(()=>({}));
+      toast(d.detail || 'Per daug bandymų.', 'err');
+      cuSetupToken = null; // sesija nutraukta backend'e
+      closeModal('modal-create-user');
+      return;
+    }
+
+    if (!res.ok) {
+      const d = await res.json().catch(()=>({}));
+      toast(d.detail || 'Neteisingas kodas.', 'err');
+      btn.textContent = 'Patvirtinti kodą';
+      document.querySelectorAll('#cu-otp-inputs .otp-dig').forEach(i => i.value='');
+      document.querySelector('#cu-otp-inputs .otp-dig').focus();
+      return;
+    }
+
+    const username = document.getElementById('cu-username').value.trim().toLowerCase();
+    toast(`Vartotojas "${username}" sėkmingai sukurtas! 2FA aktyvuota.`, 'ok');
+    closeModal('modal-create-user');
+    loadUsers();
+    if (currentView === 'overview') loadStats();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET 2FA
+═══════════════════════════════════════════════════════════════ */
+function openReset2FA(userId, username) {
+  targetUserId = userId;
+  document.getElementById('r2fa-username').textContent = username;
+  document.getElementById('r2fa-result').style.display   = 'none';
+  document.getElementById('r2fa-actions').style.display  = 'flex';
+  document.getElementById('r2fa-close').style.display    = 'none';
+  openModal('modal-reset-2fa');
+}
+
+async function confirmReset2FA() {
+  if (!targetUserId) return;
+  const res = await api('POST', `/api/admin/users/${targetUserId}/reset-2fa`);
+  if (!res) return;
+
+  if (!res.ok) {
+    const d = await res.json().catch(()=>({}));
+    toast(d.detail || 'Klaida atstatant 2FA.', 'err'); return;
+  }
+
+  const d = await res.json();
+  document.getElementById('r2fa-actions').style.display = 'none';
+
+  if (d.qr_code_base64) {
+    document.getElementById('r2fa-qr').src = `data:image/png;base64,${d.qr_code_base64}`;
+    document.getElementById('r2fa-result').style.display = '';
+  }
+
+  document.getElementById('r2fa-close').style.display = 'flex';
+  toast('2FA sėkmingai atstatytas. Pateikite QR kodą vartotojui.', 'ok');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DELETE USER
+═══════════════════════════════════════════════════════════════ */
+function openDeleteUser(userId, username) {
+  targetUserId = userId;
+  document.getElementById('del-username').textContent = username;
+  openModal('modal-delete-user');
+}
+
+async function confirmDeleteUser() {
+  if (!targetUserId) return;
+  const res = await api('DELETE', `/api/admin/users/${targetUserId}`);
+  if (!res) return;
+
+  if (!res.ok) {
+    const d = await res.json().catch(()=>({}));
+    toast(d.detail || 'Klaida trinant vartotoją.', 'err'); return;
+  }
+
+  toast('Vartotojas ištrintas.', 'ok');
+  closeModal('modal-delete-user');
+  loadUsers();
+  if (currentView === 'overview') loadStats();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   OTP INPUTS
+═══════════════════════════════════════════════════════════════ */
+function initOtpInputs(selector, onComplete) {
+  const inputs = [...document.querySelectorAll(`${selector} .otp-dig`)];
+  inputs.forEach((inp, i) => {
+    inp.addEventListener('input', () => {
+      inp.value = inp.value.replace(/\D/g, '').slice(-1);
+      if (inp.value && i < inputs.length - 1) inputs[i + 1].focus();
+      if (inputs.every(x => x.value)) onComplete && onComplete();
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !inp.value && i > 0) inputs[i - 1].focus();
+    });
+    inp.addEventListener('paste', e => {
+      e.preventDefault();
+      const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+      paste.split('').slice(0, 6).forEach((ch, j) => { if (inputs[j]) inputs[j].value = ch; });
+      const last = Math.min(paste.length, 6) - 1;
+      if (inputs[last]) inputs[last].focus();
+      if (inputs.every(x => x.value)) onComplete && onComplete();
+    });
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   REFRESH
+═══════════════════════════════════════════════════════════════ */
+function refreshAll() {
+  if (currentView === 'overview') loadStats();
+  if (currentView === 'users')    loadUsers();
+  toast('Atnaujinta.', 'inf', 1800);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   CLOSE MODALS ON BACKGROUND CLICK
+═══════════════════════════════════════════════════════════════ */
+document.querySelectorAll('.modal-bg').forEach(bg => {
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); });
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════════════ */
+async function init() {
+  const res = await api('GET', '/api/auth/me');
+  if (!res || !res.ok) return;
+  const me = await res.json();
+
+  if (!me.is_admin) {
+    toast('Prieiga uždrausti — tik administratoriai.', 'err');
+    setTimeout(() => location.href = '/dashboard.html', 1500);
+    return;
+  }
+
+  document.getElementById('nav-user').textContent = `👤 ${me.username}`;
+  loadStats();
+}
+
+init();
+</script>
+</body>
+</html>
