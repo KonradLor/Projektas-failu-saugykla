@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KonradVault — Privati Failų Saugykla</title>
+  <title>KonradVault — privati šifruota failų saugykla</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -510,28 +510,28 @@
     <div class="ticker-content">
       <span class="text-indigo-300 font-medium px-4">🔒 Fernet AES-128-CBC šifravimas</span>
       <span class="text-slate-500 px-2">•</span>
-      <span class="text-violet-300 font-medium px-4">📦 Max 500MB failas</span>
+      <span class="text-violet-300 font-medium px-4">📦 Iki 500 MB vienam failui</span>
       <span class="text-slate-500 px-2">•</span>
-      <span class="text-blue-300 font-medium px-4">💾 2GB asmeninė saugykla</span>
+      <span class="text-blue-300 font-medium px-4">💾 2 GB asmeninės saugyklos</span>
       <span class="text-slate-500 px-2">•</span>
       <span class="text-amber-300 font-medium px-4">👤 Tik 10 vartotojų</span>
       <span class="text-slate-500 px-2">•</span>
       <span class="text-green-300 font-medium px-4">🔑 Google Authenticator 2FA</span>
       <span class="text-slate-500 px-2">•</span>
-      <span class="text-pink-300 font-medium px-4">🛡️ Zero-knowledge architektūra</span>
+      <span class="text-pink-300 font-medium px-4">🛡️ Per-user šifravimo raktai</span>
       <span class="text-slate-500 px-2">•</span>
       <!-- kopija animacijos tęsimui -->
       <span class="text-indigo-300 font-medium px-4">🔒 Fernet AES-128-CBC šifravimas</span>
       <span class="text-slate-500 px-2">•</span>
-      <span class="text-violet-300 font-medium px-4">📦 Max 500MB failas</span>
+      <span class="text-violet-300 font-medium px-4">📦 Iki 500 MB vienam failui</span>
       <span class="text-slate-500 px-2">•</span>
-      <span class="text-blue-300 font-medium px-4">💾 2GB asmeninė saugykla</span>
+      <span class="text-blue-300 font-medium px-4">💾 2 GB asmeninės saugyklos</span>
       <span class="text-slate-500 px-2">•</span>
       <span class="text-amber-300 font-medium px-4">👤 Tik 10 vartotojų</span>
       <span class="text-slate-500 px-2">•</span>
       <span class="text-green-300 font-medium px-4">🔑 Google Authenticator 2FA</span>
       <span class="text-slate-500 px-2">•</span>
-      <span class="text-pink-300 font-medium px-4">🛡️ Zero-knowledge architektūra</span>
+      <span class="text-pink-300 font-medium px-4">🛡️ Per-user šifravimo raktai</span>
       <span class="text-slate-500 px-2">•</span>
     </div>
   </div>
@@ -595,7 +595,7 @@
                 border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm
                 mb-6 font-medium">
       <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-      Universiteto baigiamasis projektas · 2026
+      Universitetinis baigiamasis projektas · 2026
     </div>
 
     <!-- Pavadinimas -->
@@ -616,7 +616,7 @@
     <div class="hero-btns flex flex-col sm:flex-row gap-4 justify-center mb-12">
       <button onclick="openRegister()"
               class="btn-primary text-base px-8 py-4">
-        <span>🚀 Registruotis dabar</span>
+        <span>🚀 Sukurti paskyrą</span>
         <span class="text-xs opacity-75 border border-white/20 rounded-full px-2 py-0.5"
               id="nav-slots-badge">liko <strong id="nav-remaining">?</strong>/10</span>
       </button>
@@ -661,22 +661,22 @@
       <!-- 500 MB -->
       <div class="reveal glass p-6 text-center feature-card">
         <div class="text-4xl font-black gradient-text mb-1">500</div>
-        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">MB Max failas</div>
+        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">MB vienam failui</div>
         <div class="mt-3 text-xs text-slate-600">Tinka dokumentams, nuotraukoms ir vaizdo įrašams</div>
       </div>
 
       <!-- 2 GB -->
       <div class="reveal glass p-6 text-center feature-card" style="transition-delay:.1s;">
         <div class="text-4xl font-black gradient-text mb-1">2</div>
-        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">GB Saugykla</div>
-        <div class="mt-3 text-xs text-slate-600">Asmeninė saugoma vieta kiekvienam vartotojui</div>
+        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">GB saugyklos</div>
+        <div class="mt-3 text-xs text-slate-600">Asmeninė vieta kiekvienam vartotojui</div>
       </div>
 
       <!-- 10 vartotojų -->
       <div class="reveal glass p-6 text-center feature-card" style="transition-delay:.2s;">
         <div class="text-4xl font-black gradient-text-warm mb-1">10</div>
-        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">Max vartotojų</div>
-        <div class="mt-3 text-xs text-slate-600">Ekskluzyvus priėjimas – registruokitės kol yra vietos</div>
+        <div class="text-slate-400 text-sm font-medium uppercase tracking-widest">Vartotojų ribota</div>
+        <div class="mt-3 text-xs text-slate-600">Uždara sistema – registruokitės kol yra vietų</div>
       </div>
 
       <!-- Laisva vieta (dinamiškai) -->
@@ -700,7 +700,7 @@
       <p class="text-indigo-400 text-sm font-semibold uppercase tracking-widest mb-3">Paprastas procesas</p>
       <h2 class="text-4xl font-bold text-white mb-4">Trijų žingsnių registracija</h2>
       <p class="text-slate-400 max-w-xl mx-auto">
-        Jokio el. pašto, jokio slaptažodžio. Tik vardas ir telefonas su Google Authenticator.
+        Jokio el. pašto, jokio slaptažodžio – tik vartotojo vardas ir telefonas su Google Authenticator.
       </p>
     </div>
 
@@ -721,8 +721,8 @@
           </div>
           <h3 class="font-bold text-white text-lg mb-2">Pasirinkite vardą</h3>
           <p class="text-slate-400 text-sm leading-relaxed">
-            Įveskite slapyvardį (3–50 simbolių). Jokio el. pašto ar slaptažodžio –
-            jūsų identitetas yra tik jūsų telefonas.
+            Įveskite slapyvardį (3–50 simbolių). Nereikia nei el. pašto, nei slaptažodžio –
+            jūsų tapatybės įrodymas yra telefonas.
           </p>
           <div class="mt-4 code-block text-left">
             <span class="kw">username</span>: <span class="str">"konradas_99"</span>
@@ -739,7 +739,7 @@
           <h3 class="font-bold text-white text-lg mb-2">Nuskenuokite QR kodą</h3>
           <p class="text-slate-400 text-sm leading-relaxed">
             Atidarykite Google Authenticator ir nuskenuokite rodomą QR kodą.
-            Jūsų raktas saugomas tik telefone – serveryje tik hash.
+            Jūsų raktas saugomas tik telefone – serveryje saugoma tik vienpusė reikšmė.
           </p>
           <div class="mt-4 flex justify-center">
             <div class="w-16 h-16 bg-white rounded-lg flex items-center justify-center">
@@ -768,8 +768,8 @@
           </div>
           <h3 class="font-bold text-white text-lg mb-2">Patvirtinkite ir naudokitės</h3>
           <p class="text-slate-400 text-sm leading-relaxed">
-            Įveskite 6 skaitmenų kodą iš Authenticator. Paskyra patvirtinta –
-            iš karto galite kelti failus.
+            Įveskite 6 skaitmenų kodą iš Authenticator. Paskyra aktyvuota –
+            iš karto galite įkelti savo failus.
           </p>
           <div class="mt-4 flex justify-center gap-1.5">
             <div class="w-8 h-10 rounded bg-indigo-500/20 border border-indigo-500/40
@@ -800,9 +800,10 @@
 
     <div class="text-center mb-14 reveal">
       <p class="text-violet-400 text-sm font-semibold uppercase tracking-widest mb-3">Technologijos</p>
-      <h2 class="text-4xl font-bold text-white mb-4">Sukurta su saugumu mintyje</h2>
+      <h2 class="text-4xl font-bold text-white mb-4">Saugumas projektuotas iš pamatų</h2>
       <p class="text-slate-400 max-w-xl mx-auto">
-        Kiekvienas failas šifruojamas dar jūsų naršyklėje – serveris niekada nemato plaintext turinio.
+        Kiekvienas failas užšifruojamas vartotojui unikaliu raktu –
+        be MASTER_KEY net administratorius negali jų atkurti.
       </p>
     </div>
 
@@ -819,7 +820,7 @@
         <h3 class="font-bold text-white mb-2">Fernet šifravimas</h3>
         <p class="text-slate-400 text-sm leading-relaxed mb-3">
           AES-128-CBC + HMAC-SHA256. Kiekvienas vartotojas turi atskirą šifravimo raktą,
-          kurį saugo serverio master key.
+          kuris savo ruožtu apsaugotas serverio master raktu.
         </p>
         <div class="code-block">
           <span class="kw">MASTER_KEY</span> → <span class="kw">USER_KEY</span> → <span class="str">FAILAS</span>
@@ -835,8 +836,8 @@
         </div>
         <h3 class="font-bold text-white mb-2">Google Authenticator 2FA</h3>
         <p class="text-slate-400 text-sm leading-relaxed mb-3">
-          TOTP (RFC 6238) autentifikacija – 30 sekundžių rotacinis 6 skaitmenų kodas.
-          Slaptažodis nereikalingas.
+          TOTP autentifikacija pagal RFC 6238 – kas 30 sekundžių keičiasi 6 skaitmenų kodas.
+          Reguliariems vartotojams slaptažodis nereikalingas.
         </p>
         <div class="flex gap-1.5 mt-2">
           <div class="h-1.5 flex-1 bg-green-500 rounded-full"></div>
@@ -856,8 +857,8 @@
         </div>
         <h3 class="font-bold text-white mb-2">Srautinis šifravimas</h3>
         <p class="text-slate-400 text-sm leading-relaxed mb-3">
-          500MB failai šifruojami po 64KB gabalais. Serveris nenukrauna viso failo
-          į atmintį – nei upload'o, nei download'o metu.
+          500 MB failai šifruojami po 64 KB gabalais. Serveris nei įkeliant, nei atsisiunčiant
+          neužkrauna viso failo į atmintį – atspari OOM klaidoms.
         </p>
         <div class="code-block">
           chunk = <span class="num">65536</span> bytes (<span class="str">64KB</span>)
@@ -873,10 +874,10 @@
             <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
           </svg>
         </div>
-        <h3 class="font-bold text-white mb-2">Share Link'ai</h3>
+        <h3 class="font-bold text-white mb-2">Dalinimosi nuorodos</h3>
         <p class="text-slate-400 text-sm leading-relaxed">
-          Sukurkite riboto naudojimo nuorodas failų dalinimui.
-          Nurodykite kiek kartų leidžiama atsisiųsti (1–1000).
+          Kurkite riboto naudojimo nuorodas failams dalintis.
+          Nustatykite atsisiuntimų limitą (1–1000) – pasiekus ribą nuoroda išsijungia automatiškai.
         </p>
       </div>
 
@@ -887,10 +888,10 @@
             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
           </svg>
         </div>
-        <h3 class="font-bold text-white mb-2">Spalvoti aplankalai</h3>
+        <h3 class="font-bold text-white mb-2">Spalvoti aplankai</h3>
         <p class="text-slate-400 text-sm leading-relaxed">
-          Organizer'io medžio struktūra su spalvų žymėjimu ir šiukšlinės funkcija
-          atsitiktiniam trynimui apsaugoti.
+          Hierarchinė aplankų struktūra su spalvų žymėjimu ir šiukšlinės funkcija –
+          netyčia ištrinti failai atkuriami vienu paspaudimu.
         </p>
       </div>
 
@@ -903,10 +904,10 @@
             <line x1="1" y1="1" x2="23" y2="23"/>
           </svg>
         </div>
-        <h3 class="font-bold text-white mb-2">Zero-knowledge</h3>
+        <h3 class="font-bold text-white mb-2">Privatumas pirma</h3>
         <p class="text-slate-400 text-sm leading-relaxed">
-          Serveris niekada nemato jūsų failų turinio. Net jei duomenų bazė
-          būtų pavogta – failai neįskaitomi.
+          Failai diske saugomi tik užšifruoti. Net jei kas nors gautų prieigą
+          prie duomenų bazės ir disko – be MASTER_KEY turinys lieka neperskaitytas.
         </p>
       </div>
 
@@ -932,15 +933,15 @@
         Liko <span class="text-amber-400" id="urgency-remaining">…</span> iš 10 vietų
       </h2>
       <p class="text-slate-400 mb-8 text-lg">
-        Sistema priima tik <strong class="text-white">10 vartotojų</strong>.
-        Kai vietos baigiasi – registracija užsidarys visam laikui.
+        Sistemoje vartotojų skaičius apribotas iki <strong class="text-white">10</strong>.
+        Užsipildžius vietoms, registracija bus uždaryta.
       </p>
 
       <!-- Progress juosta -->
       <div class="mb-8">
         <div class="flex justify-between text-xs text-slate-500 mb-2">
           <span>0</span>
-          <span id="progress-label">? / 10 užimta</span>
+          <span id="progress-label">? iš 10 užimtų</span>
           <span>10</span>
         </div>
         <div class="h-3 bg-white/5 rounded-full overflow-hidden border border-white/8">
@@ -957,7 +958,7 @@
       </button>
 
       <p class="text-slate-600 text-xs mt-4">
-        Registracija užtrunka &lt;60 sekundžių · Reikalingas tik telefonas
+        Registracija užtrunka mažiau nei 60 sekundžių · reikalingas tik telefonas
       </p>
     </div>
   </div>
@@ -976,15 +977,15 @@
             Apie projektą
           </p>
           <h2 class="text-3xl font-bold text-white mb-4">
-            Baigiamasis darbas – <span class="gradient-text">100% nuo nulio</span>
+            Baigiamasis darbas – <span class="gradient-text">savarankiškai sukurtas</span>
           </h2>
           <p class="text-slate-400 leading-relaxed mb-4">
-            KonradVault sukurtas kaip universiteto baigiamojo darbo demonstracija.
-            Visas kodas rašytas rankiniu būdu – nuo backend API iki šifravimo algoritmo.
+            KonradVault sukurtas kaip universitetinio baigiamojo darbo demonstracija.
+            Visas kodas – nuo backend API iki šifravimo logikos – parašytas savarankiškai.
           </p>
           <p class="text-slate-400 leading-relaxed">
             Sistema veikia ant Oracle Cloud <strong class="text-slate-300">Always Free</strong> ARM serverio
-            (Ampere A1, 4 vCPU, 24GB RAM) su Nginx, systemd ir Fail2ban apsauga.
+            (Ampere A1, 4 vCPU, 24 GB RAM), apsaugota Nginx, systemd ir Fail2ban priemonėmis.
           </p>
         </div>
 
@@ -1019,10 +1020,10 @@
       <span class="font-bold text-white text-sm">KonradVault</span>
     </div>
     <p class="text-slate-600 text-sm">
-      Universiteto baigiamasis projektas · Konradas · 2026
+      Universitetinis baigiamasis projektas · Konrad Lorenz · 2026
     </p>
     <p class="text-slate-700 text-xs mt-1">
-      Visi duomenys šifruojami · Niekas neparduodama · Skirta demonstracijai
+      Visi failai šifruojami · jokios reklamos · skirta demonstracijai
     </p>
   </div>
 </footer>
@@ -1053,7 +1054,7 @@
         <div class="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/25
                     flex items-center justify-center text-2xl mx-auto mb-4">🔐</div>
         <h2 class="text-xl font-bold text-white mb-1">Sukurkite paskyrą</h2>
-        <p class="text-slate-400 text-sm">Registracija trunka &lt;60 sekundžių</p>
+        <p class="text-slate-400 text-sm">Registracija užtruks mažiau nei 60 sekundžių</p>
       </div>
 
       <!-- Laisvos vietos -->
@@ -1106,7 +1107,7 @@
       <!-- Alternatyva: rankinis įvedimas -->
       <details class="mb-5">
         <summary class="text-xs text-slate-500 cursor-pointer hover:text-slate-400 text-center">
-          Negaliu nuskenoti QR – įvesti rankiniu būdu
+          Negaliu nuskaityti QR – įvesti raktą rankiniu būdu
         </summary>
         <div class="mt-2 code-block text-xs break-all" id="totp-uri-text">—</div>
       </details>
@@ -1136,7 +1137,7 @@
 
       <button onclick="backToStep1()"
               class="w-full text-center text-xs text-slate-600 hover:text-slate-400 mt-3">
-        ← Grįžti atgal
+        ← Grįžti
       </button>
     </div>
 
@@ -1156,14 +1157,14 @@
 
       <h2 class="text-2xl font-bold text-white mb-2">Sveiki, <span id="success-username">—</span>! 🎉</h2>
       <p class="text-slate-400 text-sm mb-6">
-        Jūsų paskyra sėkmingai sukurta. Nukreipiama į saugyklą…
+        Jūsų paskyra sėkmingai sukurta. Netrukus būsite nukreipti į saugyklą…
       </p>
 
       <div class="bg-green-500/8 border border-green-500/20 rounded-xl p-4 mb-6 text-left text-sm">
         <p class="text-green-300 font-medium mb-1">⚠️ Svarbu:</p>
         <p class="text-slate-400">
-          Išsaugokite savo Google Authenticator paskyrą – tai vienintelis
-          būdas prisijungti. Jei prarasite telefoną, susisiekite su administratoriumi.
+          Saugokite Google Authenticator įrašą – tai vienintelis būdas prisijungti.
+          Praradus telefoną, dėl 2FA atstatymo kreipkitės į administratorių.
         </p>
       </div>
 
@@ -1193,8 +1194,8 @@
       <div class="text-center mb-6">
         <div class="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/25
                     flex items-center justify-center text-2xl mx-auto mb-4">🔑</div>
-        <h2 class="text-xl font-bold text-white mb-1">Prisijungti</h2>
-        <p class="text-slate-400 text-sm">Įveskite savo prisijungimo duomenis</p>
+        <h2 class="text-xl font-bold text-white mb-1">Prisijungimas</h2>
+        <p class="text-slate-400 text-sm">Įveskite vartotojo vardą, tada tęskite</p>
       </div>
 
       <div class="space-y-4 mb-4">
@@ -1202,10 +1203,14 @@
           <label class="block text-slate-300 text-sm font-medium mb-1.5">Vartotojo vardas</label>
           <input id="login-username" type="text" class="input-glow" placeholder="jūsų_vardas"
                  autocomplete="username"
-                 onkeydown="if(event.key==='Enter') document.getElementById('login-password').focus()" />
+                 onblur="autoToggleLoginPassword()"
+                 onkeydown="if(event.key==='Enter') autoToggleLoginPasswordAndFocus()" />
         </div>
-        <div>
-          <label class="block text-slate-300 text-sm font-medium mb-1.5">Slaptažodis</label>
+        <div id="login-password-wrap">
+          <label class="block text-slate-300 text-sm font-medium mb-1.5">
+            Slaptažodis
+            <span class="text-xs text-slate-500 font-normal">(tik administratoriams)</span>
+          </label>
           <input id="login-password" type="password" class="input-glow" placeholder="••••••••"
                  autocomplete="current-password"
                  onkeydown="if(event.key==='Enter') submitLogin()" />
@@ -1233,7 +1238,7 @@
                     flex items-center justify-center text-2xl mx-auto mb-4">📱</div>
         <h2 class="text-xl font-bold text-white mb-1">Google Authenticator</h2>
         <p class="text-slate-400 text-sm">
-          Atidarykite programėlę ir įveskite 6 skaitmenų kodą
+          Atidarykite Google Authenticator ir įveskite 6 skaitmenų kodą
         </p>
       </div>
 
@@ -1314,10 +1319,10 @@
   ============================================= */
   (function() {
     const phrases = [
-      'galingų šifravimu',
+      'galingu šifravimu',
       'Google Authenticator apsauga',
-      'srautiniu failų šifravimu',
-      'pilna privatumu',
+      'srautiniu failų perdavimu',
+      'pilnu privatumu',
     ];
     let pi = 0, ci = 0, deleting = false, pauseFrames = 0;
     const el = document.getElementById('typed-text');
@@ -1390,7 +1395,7 @@
     if (bar) bar.style.width = pct + '%';
 
     const lbl = document.getElementById('progress-label');
-    if (lbl) lbl.textContent = `${used} / ${total} užimta`;
+    if (lbl) lbl.textContent = `${used} iš ${total} užimtų`;
 
     // Limitų sekcija
     const bigRem = document.getElementById('remaining-big');
@@ -1405,9 +1410,9 @@
     const hint = document.getElementById('remaining-hint');
     if (hint) {
       hint.textContent = remaining === 0
-        ? 'Sistema užpildyta!'
-        : remaining <= 3 ? '⚠️ Beveik pilna!'
-        : 'Registruokitės dabar';
+        ? 'Vietų nebėra'
+        : remaining <= 3 ? '⚠️ Vietų liko mažai'
+        : 'Užsiregistruokite dabar';
     }
 
     // Modalas
@@ -1443,10 +1448,10 @@
     const err  = document.getElementById('username-error');
     err.classList.add('hidden');
     if (val.length > 0 && val.length < 3) {
-      hint.textContent = `${val.length}/50 – per trumpas (min. 3)`;
+      hint.textContent = `${val.length}/50 – per trumpas (mažiausiai 3 simboliai)`;
       hint.className = 'mt-1.5 text-xs text-amber-500';
     } else if (val.length >= 3) {
-      hint.textContent = `${val.length}/50 ✓`;
+      hint.textContent = `${val.length}/50 ✓ tinkamas`;
       hint.className = 'mt-1.5 text-xs text-green-500';
     } else {
       hint.textContent = '3–50 simbolių · tik mažos raidės, skaičiai, _ ir -';
@@ -1463,7 +1468,7 @@
     errEl.classList.add('hidden');
 
     if (!username || username.length < 3) {
-      errEl.textContent = 'Vartotojo vardas per trumpas (min. 3 simboliai).';
+      errEl.textContent = 'Vartotojo vardas per trumpas (mažiausiai 3 simboliai).';
       errEl.classList.remove('hidden');
       return;
     }
@@ -1622,6 +1627,68 @@
     if (e.target === document.getElementById('login-modal')) closeLogin();
   }
 
+  /* =============================================
+     HIBRIDINIS LOGIN HELPER'IAI
+     - Adminams reikia password + TOTP
+     - Reguliariems – tik TOTP (be password)
+     - Cache'inam atsakymą per username, kad nedarytume per daug užklausų
+  ============================================= */
+  let _loginPasswordRequired = null;
+  let _loginCheckedUsername  = '';
+
+  async function checkLoginMethod(username) {
+    // Cache: jei jau patikrinom šitą username – grąžinam saugotą atsakymą
+    if (_loginCheckedUsername === username && _loginPasswordRequired !== null) {
+      return _loginPasswordRequired;
+    }
+    try {
+      const r = await fetch('/api/auth/login-method', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+      if (!r.ok) return true;   // Saugiai – default'as „reikia password"
+      const data = await r.json();
+      _loginCheckedUsername  = username;
+      _loginPasswordRequired = data.requires_password;
+      return data.requires_password;
+    } catch (e) {
+      return true;              // Tinklo klaida → saugiai default'iname į „reikia password"
+    }
+  }
+
+  async function autoToggleLoginPassword() {
+    const username = document.getElementById('login-username').value.trim().toLowerCase();
+    const wrap     = document.getElementById('login-password-wrap');
+    if (!wrap) return;
+
+    if (!username) {
+      wrap.style.display = '';   // tuščias username – rodom password lauką
+      return;
+    }
+
+    const needsPw = await checkLoginMethod(username);
+    wrap.style.display = needsPw ? '' : 'none';
+
+    // Jei password nereikia – išvalom lauką, kad neišsiųstume tuščio
+    if (!needsPw) {
+      const pwEl = document.getElementById('login-password');
+      if (pwEl) pwEl.value = '';
+    }
+  }
+
+  async function autoToggleLoginPasswordAndFocus() {
+    await autoToggleLoginPassword();
+    const wrap = document.getElementById('login-password-wrap');
+    if (wrap && wrap.style.display !== 'none') {
+      // Adminas – fokusuojame į password lauką
+      document.getElementById('login-password').focus();
+    } else {
+      // Reguliarus – iškart pereiname į TOTP
+      submitLogin();
+    }
+  }
+
   async function submitLogin() {
     const username = document.getElementById('login-username').value.trim().toLowerCase();
     const password = document.getElementById('login-password').value;
@@ -1630,9 +1697,23 @@
     const btnTxt   = document.getElementById('btn-login-text');
 
     errEl.classList.add('hidden');
-    if (!username || !password) {
-      errEl.textContent = 'Įveskite vartotojo vardą ir slaptažodį.';
+
+    if (!username) {
+      errEl.textContent = 'Įveskite vartotojo vardą.';
       errEl.classList.remove('hidden');
+      return;
+    }
+
+    // Hibridinis sprendimas: pagal vartotoją renkame endpoint'ą
+    const needsPassword = await checkLoginMethod(username);
+
+    if (needsPassword && !password) {
+      // Adminui reikia password – parodom lauką ir prašom įvesti
+      const wrap = document.getElementById('login-password-wrap');
+      if (wrap) wrap.style.display = '';
+      errEl.textContent = 'Administratoriams reikia įvesti slaptažodį.';
+      errEl.classList.remove('hidden');
+      setTimeout(() => document.getElementById('login-password').focus(), 100);
       return;
     }
 
@@ -1640,16 +1721,28 @@
     btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
 
     try {
-      const r = await fetch('/api/auth/login', {
+      // Renkam endpoint'ą pagal autorizacijos modelį
+      const endpoint = needsPassword ? '/api/auth/login' : '/api/auth/login-totp';
+      const body     = needsPassword ? { username, password } : { username };
+
+      const r = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(body),
       });
       const data = await r.json();
 
       if (!r.ok) {
         errEl.textContent = data.detail || 'Neteisingi duomenys.';
         errEl.classList.remove('hidden');
+
+        // Jei serveris pasako, kad adminas turi naudoti password – atnaujinam UI
+        if (r.status === 403 && data.detail && data.detail.includes('slaptažodžiu')) {
+          _loginPasswordRequired = true;
+          _loginCheckedUsername  = username;
+          const wrap = document.getElementById('login-password-wrap');
+          if (wrap) wrap.style.display = '';
+        }
         return;
       }
 
@@ -1741,6 +1834,24 @@
     }
   });
 
+</script>
+
+<!-- =============================================
+     AUTO-REDIRECT: jei vartotojas jau prisijungęs → dashboard
+     (apsauga nuo „login loop" jausmo, kai galiojanti sesija jau yra)
+============================================= -->
+<script>
+  (async function checkExistingSession() {
+    try {
+      const r = await fetch('/api/auth/me', { credentials: 'include' });
+      if (r.ok) {
+        // Sesija galiojanti – iškart vedam į dashboard'ą
+        window.location.replace('/dashboard.html');
+      }
+    } catch (e) {
+      // Tinklo klaida – tyliai ignoruojam, vartotojas pamatys landing page
+    }
+  })();
 </script>
 </body>
 </html>

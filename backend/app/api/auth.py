@@ -225,6 +225,137 @@ def login(
     )
 
 
+# ============================================
+# HIBRIDINIS AUTH MODELIS
+# ============================================
+# Adminai: username + password + TOTP (per /login → /verify-2fa)
+# Reguliarūs: username + TOTP (per /login-totp → /verify-2fa)
+#
+# Anti-enumeration: nežinomam vartotojui sakome „reikia password" (atrodo kaip admin),
+# kad puolėjas negalėtų nustatyti, kuris username yra reguliarus, o kuris admin.
+
+@router.post(
+    "/login-method",
+    status_code=status.HTTP_200_OK,
+    summary="Sužinoti ar reikia slaptažodžio (admin) ar tik TOTP (reguliarus)",
+)
+def login_method(
+    body: dict,
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    gauna: body (dict) – { username }
+           db          – DB sesija
+    daro: pagal username nustato ar prisijungimui reikia slaptažodžio.
+          Adminams – grąžina True (reikia password).
+          Reguliariems – grąžina False (tik TOTP).
+          Nežinomam useriui – grąžina True (anti-enumeration apsauga).
+    grąžina: (dict) – { requires_password: bool }
+    iškelia: 422 – jei username tuščias
+    """
+    username = str(body.get("username", "")).strip().lower()
+
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Vartotojo vardas privalomas.",
+        )
+
+    user = db.query(User).filter(User.username == username).first()
+
+    # Anti-enumeration: jei vartotojas neegzistuoja → sakome „reikia password"
+    # (tarsi admin), kad puolėjas negalėtų atskirti egzistuojančių/neegzistuojančių
+    if user is None:
+        return {"requires_password": True}
+
+    return {"requires_password": bool(user.is_admin)}
+
+
+@router.post(
+    "/login-totp",
+    response_model=TempTokenResponse,
+    status_code=status.HTTP_200_OK,
+    summary="1 žingsnis reguliariems vartotojams (be slaptažodžio – tik TOTP)",
+)
+def login_totp(
+    body: dict,
+    db: Session = Depends(get_db),
+) -> TempTokenResponse:
+    """
+    gauna: body (dict) – { username }
+           db          – DB sesija
+    daro: pradeda prisijungimo srautą reguliariems vartotojams (be slaptažodžio).
+          Adminams – grąžina 403 (jiems privaloma /login su password).
+          Sėkmės atveju – generuoja temp_token, kurį naudoja /verify-2fa.
+    grąžina: TempTokenResponse – { temp_token, expires_in_seconds }
+    iškelia: 401 – username nerastas
+             403 – useris yra adminas (turi naudoti /login)
+             403 – paskyra deaktyvuota
+             422 – username tuščias
+    """
+    _cleanup_expired_temp_tokens()
+
+    username = str(body.get("username", "")).strip().lower()
+
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Vartotojo vardas privalomas.",
+        )
+
+    user = db.query(User).filter(User.username == username).first()
+
+    if user is None:
+        logger.warning(
+            f"Nepavykęs TOTP prisijungimas – vartotojas nerastas: '{username}'"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Neteisingas vartotojo vardas.",
+        )
+
+    # Adminai negali naudoti šio endpoint'o – jiems privaloma password + TOTP
+    if user.is_admin:
+        logger.warning(
+            f"Adminas bandė per /login-totp: '{user.username}' – grąžinta 403"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administratoriai privalo prisijungti su slaptažodžiu.",
+        )
+
+    if not user.is_active:
+        logger.warning(
+            f"Nepavykęs TOTP prisijungimas – paskyra deaktyvuota: '{user.username}'"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Jūsų paskyra yra deaktyvuota. Susisiekite su administratoriumi.",
+        )
+
+    # Generuojame temp_token ir laukiame TOTP kodo per /verify-2fa
+    temp_token = generate_temp_token()
+    expires_at = datetime.now(timezone.utc) + timedelta(
+        minutes=settings.temp_token_expire_minutes
+    )
+
+    _pending_2fa[temp_token] = {
+        "user_id": user.id,
+        "expires_at": expires_at,
+        "attempts": 0,
+    }
+
+    logger.info(
+        f"Sėkmingas 1 žingsnis (TOTP-only) – vartotojas '{user.username}' "
+        f"(id={user.id}), laukia 2FA"
+    )
+
+    return TempTokenResponse(
+        temp_token=temp_token,
+        expires_in_seconds=settings.temp_token_expire_minutes * 60,
+    )
+
+
 @router.post(
     "/verify-2fa",
     response_model=TokenResponse,

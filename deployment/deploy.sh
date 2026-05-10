@@ -105,7 +105,7 @@ cmd_install() {
     fi
 
     # ── 1. Sistemos vartotojas ─────────────────────────────────────────────────
-    head "1/9  Sistemos vartotojas"
+    head "1/10 Sistemos vartotojas"
     if id "${APP_USER}" &>/dev/null; then
         ok "Vartotojas '${APP_USER}' jau egzistuoja"
     else
@@ -119,7 +119,7 @@ cmd_install() {
     fi
 
     # ── 2. Direktorijos ────────────────────────────────────────────────────────
-    head "2/9  Direktorijų struktūra"
+    head "2/10 Direktorijų struktūra"
     mkdir -p "${APP_DIR}" "${BACKEND_DIR}" "${FRONTEND_DIR}"
     mkdir -p "${ENCRYPTED_DIR}" "${LOG_DIR}"
 
@@ -129,43 +129,52 @@ cmd_install() {
     chmod 755 "${LOG_DIR}"
 
     # App dir – rašo tik root diegiant, skaito konradvault servisas
+    # SVARBU: chmod 755 (ne 750!) – kitaip Nginx (www-data) negali pasiekti
+    # /opt/konradvault/frontend/ failų ir grąžina 404 visiems puslapiams.
+    # Saugumas išlaikomas: backend/ pats pasilieka 750 (žr. _copy_code),
+    # .env – 600, o /opt/konradvault yra TIK statinis frontend kelias.
     chown -R root:${APP_GROUP} "${APP_DIR}"
-    chmod 750 "${APP_DIR}"
+    chmod 755 "${APP_DIR}"
 
     ok "Direktorijos sukurtos"
 
-    # ── 3. Kodo kopijavimas ────────────────────────────────────────────────────
-    head "3/9  Kodo kopijavimas"
+    # ── 3. iptables fix (Oracle Cloud REJECT taisyklė) ─────────────────────────
+    head "3/10 iptables – HTTP/HTTPS portų atvėrimas"
+    _fix_iptables
+    ok "iptables sukonfigūruotas"
+
+    # ── 4. Kodo kopijavimas ────────────────────────────────────────────────────
+    head "4/10 Kodo kopijavimas"
     _copy_code
     ok "Kodas nukopijuotas"
 
-    # ── 4. Python venv ─────────────────────────────────────────────────────────
-    head "4/9  Python virtualios aplinkos kūrimas"
+    # ── 5. Python venv ─────────────────────────────────────────────────────────
+    head "5/10 Python virtualios aplinkos kūrimas"
     _setup_venv
     ok "Python venv sukurtas ir dependencies įdiegtos"
 
-    # ── 5. .env failo tikrinimas ───────────────────────────────────────────────
-    head "5/9  .env konfigūracija"
+    # ── 6. .env failo tikrinimas ───────────────────────────────────────────────
+    head "6/10 .env konfigūracija"
     _check_env
     ok ".env failas rastas"
 
-    # ── 6. DB migracija ────────────────────────────────────────────────────────
-    head "6/9  Duomenų bazės inicializavimas"
+    # ── 7. DB migracija ────────────────────────────────────────────────────────
+    head "7/10 Duomenų bazės inicializavimas"
     _run_migrations
     ok "DB sukurta / migruota"
 
-    # ── 7. Nginx konfigūracija ─────────────────────────────────────────────────
-    head "7/9  Nginx konfigūracija"
+    # ── 8. SSL sertifikatas + Nginx ────────────────────────────────────────────
+    head "8/10 Nginx konfigūracija"
     _setup_nginx
     ok "Nginx sukonfigūruotas"
 
-    # ── 8. systemd servisas ────────────────────────────────────────────────────
-    head "8/9  systemd servisas"
+    # ── 9. systemd servisas ────────────────────────────────────────────────────
+    head "9/10 systemd servisas"
     _setup_service
     ok "Servisas įdiegtas ir paleistas"
 
-    # ── 9. Santrauka ───────────────────────────────────────────────────────────
-    head "9/9  Diegimas baigtas"
+    # ── 10. Santrauka ──────────────────────────────────────────────────────────
+    head "10/10 Diegimas baigtas"
     _print_summary
 }
 
@@ -244,6 +253,63 @@ cmd_logs() {
 # ==============================================================================
 #  PAGALBINĖS FUNKCIJOS
 # ==============================================================================
+
+# Oracle Cloud iptables fix:
+#   Oracle Ubuntu image'uose INPUT grandinėje yra REJECT taisyklė po SSH (port 22).
+#   Visi UFW pridėjimai eina PO REJECT → niekada nepasiekiami → 80/443 blokuojami.
+#   Sprendimas: įdėti ACCEPT taisykles HTTP/HTTPS PRIEŠ REJECT.
+_fix_iptables() {
+    # Tikrinam ar yra REJECT taisyklė (būdinga Oracle Cloud)
+    if ! iptables -L INPUT -n 2>/dev/null | grep -q "REJECT.*reject-with icmp-host-prohibited"; then
+        info "iptables REJECT taisyklės nėra – Oracle Cloud fix nereikia"
+        return 0
+    fi
+
+    # Tikrinam ar 80/443 jau atidaryti
+    local need_80=true
+    local need_443=true
+    if iptables -L INPUT -n | grep -q "tcp dpt:80"; then
+        need_80=false
+    fi
+    if iptables -L INPUT -n | grep -q "tcp dpt:443"; then
+        need_443=false
+    fi
+
+    if ! $need_80 && ! $need_443; then
+        ok "HTTP/HTTPS portai jau atidaryti iptables"
+        return 0
+    fi
+
+    # Surandam REJECT eilutę – įterpiame PRIEŠ ją
+    local reject_line
+    reject_line=$(iptables -L INPUT -n --line-numbers | grep "REJECT" | head -1 | awk '{print $1}')
+
+    if [[ -z "${reject_line}" ]]; then
+        info "REJECT eilutės numeris nerastas – iptables fix praleistas"
+        return 0
+    fi
+
+    if $need_443; then
+        info "Atidaromas 443/tcp prieš REJECT (eilutė ${reject_line})..."
+        iptables -I INPUT "${reject_line}" -p tcp --dport 443 -j ACCEPT \
+            -m comment --comment "KonradVault HTTPS"
+    fi
+
+    if $need_80; then
+        info "Atidaromas 80/tcp prieš REJECT..."
+        iptables -I INPUT "${reject_line}" -p tcp --dport 80 -j ACCEPT \
+            -m comment --comment "KonradVault HTTP"
+    fi
+
+    # Išsaugom kad išliktų po reboot'o
+    if command -v netfilter-persistent &>/dev/null; then
+        netfilter-persistent save &>/dev/null || true
+    elif command -v iptables-save &>/dev/null; then
+        iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
+    fi
+
+    ok "iptables HTTP/HTTPS taisyklės pridėtos"
+}
 
 # Kodo kopijavimas iš repo arba dabartinės direktorijos
 _copy_code() {
@@ -336,6 +402,26 @@ _check_env() {
     chmod 600 "${ENV_FILE}"
 }
 
+# .env eilutės atnaujinimas: jei rakto-raktas yra → pakeisti, jei ne → pridėti naują eilutę.
+# Tai apsauga nuo problemos: jei .env.example kažkurio rakto neturi (pvz. naujesni laukai),
+# tiesioginis sed nieko nedaro ir tylos nemato.
+_set_env_var() {
+    local key="$1"
+    local value="$2"
+    local file="${ENV_FILE}"
+
+    if grep -qE "^${key}=" "${file}"; then
+        # Yra → pakeičiam (escape & ir | kad sed nesugadintų)
+        local escaped_value
+        escaped_value=$(printf '%s\n' "${value}" | sed -e 's/[\/&]/\\&/g')
+        sed -i "s|^${key}=.*|${key}=${escaped_value}|" "${file}"
+    else
+        # Nėra → pridedam į pabaigą
+        echo "" >> "${file}"
+        echo "${key}=${value}" >> "${file}"
+    fi
+}
+
 # Interaktyvus .env sukūrimas (jei nėra)
 _interactive_env_setup() {
     info "Kopijuojamas .env.example..."
@@ -351,17 +437,43 @@ _interactive_env_setup() {
     sed -i "s|PAKEISK_MANE_SUGENERUOTU_RAKTU|${MASTER_KEY}|g" "${ENV_FILE}"
     sed -i "s|PAKEISK_MANE_KITU_SUGENERUOTU_RAKTU|${SECRET_KEY}|g" "${ENV_FILE}"
 
-    # Production keliai
-    sed -i "s|DATABASE_URL=.*|DATABASE_URL=sqlite:////var/konradvault/konradvault.db|" "${ENV_FILE}"
-    sed -i "s|ENCRYPTED_FILES_DIR=.*|ENCRYPTED_FILES_DIR=/var/konradvault/encrypted|" "${ENV_FILE}"
-    sed -i "s|LOG_DIR=.*|LOG_DIR=/var/log/konradvault|" "${ENV_FILE}"
-    sed -i "s|BASE_URL=.*|BASE_URL=https://$(curl -s ifconfig.me 2>/dev/null || echo 'YOUR_SERVER_IP')|" "${ENV_FILE}"
-    sed -i "s|DEBUG=.*|DEBUG=False|" "${ENV_FILE}"
+    # Public IP gavimas (Oracle metadata → ifconfig.me → hostname -I fallback)
+    SERVER_IP=$(curl -s --max-time 3 ifconfig.me 2>/dev/null \
+        || hostname -I 2>/dev/null | awk '{print $1}' \
+        || echo 'YOUR_SERVER_IP')
+
+    # Production keliai – naudojame _set_env_var, kad veiktų net jei kintamasis
+    # nebuvo .env.example faile (apsauga nuo tylios klaidos)
+    _set_env_var "DATABASE_URL"        "sqlite:////var/konradvault/konradvault.db"
+    _set_env_var "ENCRYPTED_FILES_DIR" "/var/konradvault/encrypted"
+    _set_env_var "LOG_DIR"             "/var/log/konradvault"
+    _set_env_var "BASE_URL"            "https://${SERVER_IP}"
+    _set_env_var "DEBUG"               "False"
+
+    # ── VALIDACIJA: kritiniai laukai turi būti teisingo formato ──
+    # Apsauga nuo tylios klaidos jei sed kažką sugadino
+    if ! grep -qE "^DATABASE_URL=sqlite:" "${ENV_FILE}"; then
+        echo ""
+        echo -e "${RED}KLAIDA: DATABASE_URL .env faile turi prasidėti 'sqlite:'${NC}"
+        echo "  Dabartinis: $(grep '^DATABASE_URL=' ${ENV_FILE})"
+        err "Pataisykite .env failą rankomis ir paleiskite deploy.sh dar kartą."
+    fi
+
+    if ! grep -qE "^BASE_URL=https?://" "${ENV_FILE}"; then
+        echo ""
+        echo -e "${RED}KLAIDA: BASE_URL .env faile turi prasidėti 'http://' arba 'https://'${NC}"
+        echo "  Dabartinis: $(grep '^BASE_URL=' ${ENV_FILE})"
+        err "Pataisykite .env failą rankomis."
+    fi
+
+    if ! grep -qE "^MASTER_KEY=.{32,}" "${ENV_FILE}"; then
+        err "MASTER_KEY .env faile per trumpas (min 32 simboliai). Patikrinkite generavimą."
+    fi
 
     chown "${APP_USER}:${APP_GROUP}" "${ENV_FILE}"
     chmod 600 "${ENV_FILE}"
 
-    ok ".env sukurtas su sugeneruotais raktais"
+    ok ".env sukurtas su sugeneruotais raktais (server IP: ${SERVER_IP})"
 
     echo ""
     echo -e "${YELLOW}  ⚠  LABAI SVARBU – IŠSAUGOKITE ŠIUOS RAKTUS:${NC}"
@@ -405,6 +517,26 @@ _run_migrations() {
     if [[ -f "${DB_FILE}" ]]; then
         chown "${APP_USER}:${APP_GROUP}" "${DB_FILE}"
         chmod 640 "${DB_FILE}"
+    fi
+
+    # ── VALIDACIJA: lentelės sukurtos ──
+    # Po migracijos turime turėti bent 5 pagrindines lenteles:
+    # users, folders, files, share_links, sessions (+ alembic_version)
+    if command -v sqlite3 &>/dev/null && [[ -f "${DB_FILE}" ]]; then
+        local table_list
+        table_list=$(sudo -u "${APP_USER}" sqlite3 "${DB_FILE}" ".tables" 2>/dev/null || echo "")
+        local table_count
+        table_count=$(echo "${table_list}" | wc -w)
+
+        if [[ "${table_count}" -lt 5 ]]; then
+            echo ""
+            echo -e "${RED}KLAIDA: DB migracija nepavyko – rasta tik ${table_count} lentelės${NC}"
+            echo "  Tikėtasi: bent 5 (users, folders, files, share_links, sessions)"
+            echo "  DB failas: ${DB_FILE}"
+            err "Patikrinkite Alembic migraciją: 'sudo -u ${APP_USER} ${VENV_DIR}/bin/python -m alembic current'"
+        fi
+
+        info "DB lentelės (${table_count}): ${table_list}"
     fi
 }
 

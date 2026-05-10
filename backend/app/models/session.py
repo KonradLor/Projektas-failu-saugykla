@@ -141,10 +141,17 @@ class Session(Base):
     def is_expired(self) -> bool:
         """
         gauna: nieko (savybė)
-        daro: tikrina ar sesija jau pasibaigė lyginant su dabartiniu UTC laiku
+        daro: tikrina ar sesija jau pasibaigė lyginant su dabartiniu UTC laiku.
+              SVARBU: SQLite saugo datetime BE timezone info (naive datetime),
+              o datetime.now(timezone.utc) yra tz-aware. Lyginant juos tiesiogiai
+              Python kelia TypeError: can't compare offset-naive and offset-aware.
+              Todėl prieš lyginimą priskiriame UTC tzinfo, jei jo nėra.
         grąžina: (bool) - True jei sesija nebegalioja
         """
-        return datetime.now(timezone.utc) > self.expires_at
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) > expires
 
     @property
     def is_valid(self) -> bool:
@@ -159,10 +166,14 @@ class Session(Base):
     def time_remaining(self) -> timedelta:
         """
         gauna: nieko (savybė)
-        daro: apskaičiuoja kiek laiko liko iki sesijos pasibaigimo
+        daro: apskaičiuoja kiek laiko liko iki sesijos pasibaigimo.
+              Kaip ir is_expired – priskiriame UTC tzinfo SQLite naive datetime'ui.
         grąžina: (timedelta) - laikas iki pasibaigimo (gali būti neigiamas jei pasibaigė)
         """
-        return self.expires_at - datetime.now(timezone.utc)
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        return expires - datetime.now(timezone.utc)
 
     def renew(self) -> None:
         """

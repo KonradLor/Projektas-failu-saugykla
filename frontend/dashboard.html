@@ -1507,6 +1507,9 @@ function sortFiles(v) { S.sort = v; renderAll(); }
 /* ====================================================
    UPLOAD
 ==================================================== */
+const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;   // 500 MB (sutampa su backend MAX_FILE_SIZE_MB)
+const MAX_FILE_SIZE_MB    = 500;
+
 function triggerUpload() { document.getElementById('file-input').click(); }
 
 async function uploadFiles(files) {
@@ -1514,6 +1517,30 @@ async function uploadFiles(files) {
   const panel = document.getElementById('upload-panel');
   const items = document.getElementById('upload-items');
   panel.classList.add('visible');
+
+  // ── Atmesti per didelius failus PRIEŠ upload'inant ──
+  // Apsauga nuo bandwidth eikvojimo + 500MB+ failai užblokuotų UI
+  const tooBig = [];
+  for (const f of files) {
+    if (f.size > MAX_FILE_SIZE_BYTES) tooBig.push(f);
+  }
+  if (tooBig.length > 0) {
+    const names = tooBig.map(f =>
+      `${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`
+    ).join(', ');
+    showToast(`❌ Failai per dideli (max ${MAX_FILE_SIZE_MB} MB): ${names}`, 'error');
+
+    // Filtruojame tinkamo dydžio failus, jei tokių dar yra
+    files = Array.from(files).filter(f => f.size <= MAX_FILE_SIZE_BYTES);
+    if (files.length === 0) {
+      // Visi atmesti – paslepiame upload panelę
+      setTimeout(() => {
+        if (!document.getElementById('upload-items').children.length)
+          hideUploadPanel();
+      }, 100);
+      return;
+    }
+  }
 
   for (const file of files) {
     const uid = Math.random().toString(36).slice(2);
