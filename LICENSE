@@ -1,0 +1,99 @@
+KonradVault – Proprietary License (Educational Viewing Only)
+
+Copyright (c) 2026 Konrad Lorenz
+
+================================================================================
+ALL RIGHTS RESERVED
+================================================================================
+
+This source code repository ("the Software") is made publicly visible
+SOLELY for educational and demonstration purposes — to allow prospective
+employers, academic reviewers, and the open programming community to study
+the author's work, design choices, and coding style.
+
+The Software is NOT open-source software. Public visibility on a hosting
+platform (such as GitHub) does NOT grant any license, implied or explicit,
+to use, modify, or redistribute the Software.
+
+================================================================================
+PERMITTED USE
+================================================================================
+
+You MAY:
+
+  (a) View, read, and study the source code in this repository for your
+      personal educational purposes.
+
+  (b) Reference small, clearly-attributed code excerpts in academic papers,
+      blog posts, or technical discussions, provided that:
+        - The excerpt is shorter than 30 lines, AND
+        - You include a clear attribution to the original author and a
+          link to this repository.
+
+  (c) Cite this repository in academic work, theses, CVs, or portfolios.
+
+  (d) Run the Software locally on your own machine for the sole purpose
+      of evaluating its functionality, provided that you do not deploy it
+      to any public, shared, or commercial environment.
+
+================================================================================
+PROHIBITED USE
+================================================================================
+
+You MAY NOT, without prior written permission from the copyright holder:
+
+  1. Use the Software, in whole or in part, in any commercial product,
+     service, or environment.
+
+  2. Deploy the Software to any production, public-facing, or
+     revenue-generating system.
+
+  3. Modify, adapt, translate, port, or create derivative works based on
+     the Software for distribution.
+
+  4. Redistribute, sublicense, sell, rent, lease, or otherwise transfer
+     copies of the Software (modified or unmodified) to any third party.
+
+  5. Remove or alter any copyright notices, license headers, attribution
+     statements, or proprietary markings contained in the Software.
+
+  6. Use the Software, in whole or in part, to train machine-learning
+     models, large language models, or any automated code-generation
+     systems.
+
+  7. Reverse-engineer the Software's deployed instances or attempt to
+     recover encryption keys, user data, or internal credentials.
+
+================================================================================
+NO WARRANTY
+================================================================================
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE AUTHOR OR COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM,
+DAMAGES, OR OTHER LIABILITY — WHETHER IN AN ACTION OF CONTRACT, TORT, OR
+OTHERWISE — ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR
+THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+================================================================================
+THIRD-PARTY COMPONENTS
+================================================================================
+
+The Software depends on third-party open-source libraries (FastAPI,
+SQLAlchemy, Pydantic, cryptography, argon2-cffi, pyotp, Pillow, qrcode,
+Tailwind CSS, etc.). Each of these components remains governed by its
+own respective license. This LICENSE applies solely to the original
+source code authored for this project.
+
+================================================================================
+CONTACT
+================================================================================
+
+For commercial licensing, partnership inquiries, or written permission to
+use this Software beyond the terms above, contact the author via the
+repository's issue tracker or the contact information listed in
+the project README.
+
+================================================================================
