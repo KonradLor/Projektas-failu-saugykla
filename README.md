@@ -2,72 +2,74 @@
 
 # 🔐 KonradVault
 
-**Privati, end-to-end šifruota failų saugykla**
+**Private, end-to-end encrypted file vault**
 
-Universitetinis baigiamasis projektas — savarankiškai sukonfigūruota,
-pilno stack'o, demonstracinė aplikacija, paleista ant Oracle Cloud Always Free.
+University final project — a fully self-configured, full-stack
+demonstration application deployed on Oracle Cloud Always Free.
 
 [![License](https://img.shields.io/badge/license-Proprietary%20(view%20only)-red.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com/)
 [![SQLite](https://img.shields.io/badge/SQLite-3-003B57.svg)](https://www.sqlite.org/)
-[![Status](https://img.shields.io/badge/status-MVP%20baigtas-success.svg)]()
+[![Status](https://img.shields.io/badge/status-MVP%20complete-success.svg)]()
+
+**🌐 Language:** **English** · [Lietuvių](README.lt.md)
 
 </div>
 
 ---
 
-## 📖 Apie projektą
+## 📖 About the project
 
-**KonradVault** — tai šifruota debesijos saugykla, kurioje vartotojai gali
-saugoti, peržiūrėti ir dalintis savo failais. Visi failai šifruojami **vartotojui
-unikaliu raktu** prieš įrašant į diską — net jei DB ir disko turinys būtų
-pavogtas, be `MASTER_KEY` failai lieka neperskaitomi.
+**KonradVault** is an encrypted cloud vault where users can store, preview
+and share their files. Every file is encrypted with a **per-user unique key**
+before being written to disk — even if the database and disk contents were
+stolen, the files remain unreadable without the `MASTER_KEY`.
 
-Projekto tikslas — pademonstruoti pilno stack'o sprendimą su realiais
-saugumo principais, deployinimą Linux serveryje ir modernų UX.
+The project's goal is to demonstrate a full-stack solution with real-world
+security principles, Linux server deployment and a modern UX.
 
 ---
 
-## ✨ Pagrindinės funkcijos
+## ✨ Key features
 
-- 🔒 **End-to-end šifravimas** (Fernet / AES-128-CBC + HMAC-SHA256)
+- 🔒 **End-to-end encryption** (Fernet / AES-128-CBC + HMAC-SHA256)
 - 🗝 **Per-user key hierarchy** — `MASTER_KEY → USER_KEY (DB) → FILES (disk)`
-- 🔐 **2FA su Google Authenticator** (TOTP / RFC 6238)
-- 👥 **Vartotojų valdymas** — admin panelė, registracija (be slaptažodžio,
-  tik TOTP), 2FA atstatymas
-- 📁 **Aplankų hierarchija** su drag & drop, spalvų rinkikliu
-- 🗑 **Šiukšlinė** (soft delete + restore)
-- 🔗 **Dalinimosi nuorodos** su atsisiuntimų limitais (atominis counter)
-- 🖼 **Paveikslėlių thumbnail'ai** — automatiškai generuojami, šifruoti
-- 🔍 **Failų ir aplankų paieška** per visą saugyklą
-- 📤 **Streaming upload/download** — 500MB failai be RAM perkrovos
-- 🎨 **Modernus UI** — vanilla JS + Tailwind CSS, glassmorphism, animacijos
+- 🔐 **2FA via Google Authenticator** (TOTP / RFC 6238)
+- 👥 **User management** — admin panel, password-less registration
+  (TOTP only), 2FA reset
+- 📁 **Folder hierarchy** with drag & drop, color picker
+- 🗑 **Trash bin** (soft delete + restore)
+- 🔗 **Share links** with download limits (atomic counter)
+- 🖼 **Image thumbnails** — auto-generated, encrypted
+- 🔍 **File and folder search** across the entire vault
+- 📤 **Streaming upload/download** — 500MB files without RAM overload
+- 🎨 **Modern UI** — vanilla JS + Tailwind CSS, glassmorphism, animations
 
 ---
 
-## 🛠 Technologijų stack'as
+## 🛠 Tech stack
 
-| Sluoksnis | Įrankis |
+| Layer | Tool |
 |---|---|
 | Backend framework | FastAPI 0.115 + Uvicorn |
 | ORM | SQLAlchemy 2.0 + Alembic |
-| Duomenų bazė | SQLite (WAL mode) |
-| Autentifikacija | Argon2id + Pydantic v2 + pyotp |
-| Šifravimas | cryptography (Fernet, streaming chunks) |
+| Database | SQLite (WAL mode) |
+| Authentication | Argon2id + Pydantic v2 + pyotp |
+| Encryption | cryptography (Fernet, streaming chunks) |
 | Frontend | Vanilla JS + Tailwind CSS (CDN) |
 | Reverse proxy | Nginx (TLS 1.2/1.3, rate limiting) |
-| Procesų valdymas | systemd (su saugumo izoliacija) |
+| Process management | systemd (with security hardening) |
 | Hosting | Oracle Cloud Always Free (ARM Ubuntu 22.04) |
 
 ---
 
-## 🏗 Architektūra
+## 🏗 Architecture
 
 ```
                     ┌──────────────────┐
-                    │   Klientai       │
-                    │ (naršyklė + JS)  │
+                    │     Clients      │
+                    │ (browser + JS)   │
                     └────────┬─────────┘
                              │ HTTPS (TLS 1.2/1.3)
                     ┌────────▼─────────┐
@@ -81,174 +83,177 @@ saugumo principais, deployinimą Linux serveryje ir modernų UX.
                     └──┬──────────┬────┘
                        │          │
               ┌────────▼──┐  ┌────▼────────────┐
-              │  SQLite   │  │  Šifruoti       │
-              │  (WAL)    │  │  failai diske   │
+              │  SQLite   │  │  Encrypted      │
+              │  (WAL)    │  │  files on disk  │
               │  metadata │  │  /var/.../*.enc │
               └───────────┘  └─────────────────┘
 ```
 
-**Šifravimo grandinė:**
+**Encryption chain:**
 ```
-MASTER_KEY (.env)  ──šifruoja──►  USER_KEY (DB BLOB)  ──šifruoja──►  FILES (disk)
+MASTER_KEY (.env)  ──encrypts──►  USER_KEY (DB BLOB)  ──encrypts──►  FILES (disk)
 ```
 
-Praradus `MASTER_KEY` — visi failai prarasti negrįžtamai (jokio backdoor).
+If `MASTER_KEY` is lost — all files are gone forever (no backdoor).
 
 ---
 
-## 📂 Projekto struktūra
+## 📂 Project structure
 
 ```
 main/
 ├── backend/                    # FastAPI backend
 │   ├── app/
-│   │   ├── api/               # Endpoint'ai (auth, files, folders, share, admin, …)
-│   │   ├── core/              # Šifravimas, security, TOTP, dependencies
+│   │   ├── api/               # Endpoints (auth, files, folders, share, admin, …)
+│   │   ├── core/              # Encryption, security, TOTP, dependencies
 │   │   ├── models/            # SQLAlchemy ORM (User, File, Folder, ShareLink, Session)
-│   │   ├── schemas/           # Pydantic schemos (request/response)
-│   │   ├── utils/             # Helper'iai (file I/O, thumbnails, common)
+│   │   ├── schemas/           # Pydantic schemas (request/response)
+│   │   ├── utils/             # Helpers (file I/O, thumbnails, common)
 │   │   ├── config.py          # Pydantic Settings
 │   │   ├── database.py        # SQLAlchemy engine
 │   │   └── main.py            # FastAPI entry point
-│   ├── migrations/            # Alembic migracijos
-│   ├── scripts/               # CLI įrankiai (create_user, reset_2fa)
+│   ├── migrations/            # Alembic migrations
+│   ├── scripts/               # CLI tools (create_user, reset_2fa)
 │   └── requirements.txt
 │
-├── frontend/                  # Vanilla HTML/CSS/JS (be build step'o)
-│   ├── konradvault.html       # Landing + login + registracija
-│   ├── dashboard.html         # Failų valdytojas (pagrindinis UI)
-│   ├── share.html             # Viešas dalinimosi puslapis
-│   └── admin.html             # Admin panelė
+├── frontend/                  # Vanilla HTML/CSS/JS (no build step)
+│   ├── konradvault.html       # Landing + login + registration
+│   ├── dashboard.html         # File manager (main UI)
+│   ├── share.html             # Public share page
+│   └── admin.html             # Admin panel
 │
 ├── deployment/
 │   ├── nginx.conf             # Nginx reverse proxy + SSL + rate limiting
-│   ├── konradvault.service    # systemd unit (saugumo izoliacija)
-│   └── deploy.sh              # Vienos komandos diegimas/atnaujinimas
+│   ├── konradvault.service    # systemd unit (security hardening)
+│   └── deploy.sh              # One-command install / update
 │
-├── docs/                      # Techninė dokumentacija (laukia)
-├── LICENSE                    # Proprietary – mokymosi tikslams
-└── README.md                  # Šis failas
+├── docs/                      # Technical documentation (pending)
+├── LICENSE                    # Proprietary – educational use only
+├── README.md                  # English (default)
+└── README.lt.md               # Lithuanian translation
 ```
 
 ---
 
-## 🚀 Greitas paleidimas
+## 🚀 Quick start
 
-### Lokali aplinka (kūrimui)
+### Local environment (development)
 
 ```bash
-# 1. Klonas
+# 1. Clone
 git clone https://github.com/KonradLor/Projektas-failu-saugykla.git
-cd konradvault/backend
+cd Projektas-failu-saugykla/backend
 
-# 2. Python 3.10+ aplinka
+# 2. Python 3.10+ environment
 python3 -m venv venv
 source venv/bin/activate            # Linux/Mac
 # venv\Scripts\activate              # Windows
 
-# 3. Priklausomybės
+# 3. Dependencies
 pip install -r requirements.txt
 
-# 4. .env failas
+# 4. .env file
 cp .env.example .env
 python -c "from cryptography.fernet import Fernet; print('MASTER_KEY=' + Fernet.generate_key().decode())"
 python -c "from cryptography.fernet import Fernet; print('SECRET_KEY=' + Fernet.generate_key().decode())"
-# → įklijuok abu į .env
+# → paste both into .env
 
-# 5. DB inicializacija
+# 5. DB initialization
 alembic upgrade head
 
-# 6. Pirmas vartotojas (admin)
+# 6. First user (admin)
 python scripts/create_user.py --username konradas --admin
 
-# 7. Paleidimas
+# 7. Run
 uvicorn app.main:app --reload
 # → http://localhost:8000/konradvault.html
 ```
 
-### Production deployment (Linux serveris)
+### Production deployment (Linux server)
 
 ```bash
-# Vienos komandos diegimas (kuria sistemos vartotoją, venv, Nginx, systemd)
+# Single-command install (creates system user, venv, Nginx, systemd)
 sudo bash deployment/deploy.sh
 ```
 
-Detalios instrukcijos — [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (laukia).
+Detailed instructions — [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) (pending).
 
 ---
 
-## 🔒 Saugumo principai
+## 🔒 Security principles
 
-| Sritis | Sprendimas |
+| Area | Solution |
 |---|---|
-| Slaptažodžių saugojimas | Argon2id (memory_cost=64MB, time_cost=3) |
-| 2FA | TOTP RFC 6238, valid_window=1, max 5 brute-force bandymai |
-| Sesijos | HTTP-only + Secure + SameSite=Strict cookie, 24h TTL |
-| Failų šifravimas | Fernet (AES-128-CBC + HMAC), per-user key |
-| Streaming | 64KB chunks (jokio RAM perkrovimo) |
+| Password storage | Argon2id (memory_cost=64MB, time_cost=3) |
+| 2FA | TOTP RFC 6238, valid_window=1, max 5 brute-force attempts |
+| Sessions | HTTP-only + Secure + SameSite=Strict cookie, 24h TTL |
+| File encryption | Fernet (AES-128-CBC + HMAC), per-user key |
+| Streaming | 64KB chunks (no RAM overload) |
 | Rate limiting | Nginx limit_req — 5r/s auth, 30r/s API |
-| Header'iai | HSTS, X-Frame-Options DENY, CSP, nosniff |
-| systemd izoliacija | ProtectSystem=strict, NoNewPrivileges, syscall filter |
-| User enumeration | Vienodas atsakymo laikas su tikru dummy hash |
-| Path traversal | UUID failai diske, validated filename schema |
+| HTTP headers | HSTS, X-Frame-Options DENY, CSP, nosniff |
+| systemd hardening | ProtectSystem=strict, NoNewPrivileges, syscall filter |
+| User enumeration | Constant-time response with real dummy hash |
+| Path traversal | UUID files on disk, validated filename schema |
 
 ---
 
-## 📊 Limitai ir kvotos
+## 📊 Limits and quotas
 
-| Parametras | Reikšmė |
+| Parameter | Value |
 |---|---|
-| Maksimalus failo dydis | 500 MB |
-| Maksimali vieta vartotojui | 2 GB |
-| Maksimalus vartotojų skaičius | 10 (rezervuota Oracle Free riba) |
-| Sesijos galiojimas | 24 h |
+| Maximum file size | 500 MB |
+| Maximum storage per user | 2 GB |
+| Maximum users | 10 (Oracle Free reserve limit) |
+| Session lifetime | 24 h |
 | TOTP setup token | 5 min (login) / 10 min (register) |
 | Share download limit | 1–1000 |
 
 ---
 
-## 🖥 Demo (gyvas projektas)
+## 🖥 Demo (live project)
 
-> Demo URL pateikiamas pagal poreikį projekto pristatymo metu.
-> Dėl Oracle Free 10 vartotojų limito — naudojama tik kvietimu.
-
----
-
-## 📜 Licencija
-
-Šis projektas yra **publikai matomas tik mokymosi tikslams**.
-
-✅ Galite skaityti, studijuoti ir nuorodos į projektą.
-❌ Negalima naudoti komerciškai, deployinti į produkciją ar
-   redistribuoti modifikuotų versijų.
-
-Pilnos sąlygos — [LICENSE](LICENSE) faile.
-
-Komerciniam naudojimui — susisiekite per repo issue tracker'į.
+> Demo URL is provided on request during the project's defense.
+> Due to the Oracle Free 10-user cap — invitation-only.
 
 ---
 
-## 👤 Autorius
+## 📜 License
 
-**Konradas** — universitetinio baigiamojo darbo autorius
+This project is **publicly visible for educational purposes only**.
 
-Projektas sukurtas savarankiškai per ~50 valandų, dokumentuojamas pagal
-griežtą sesijų protokolą (`03_PROGRESO_PROTOKOLAS.txt`).
+✅ You can read, study and reference the project.
+❌ You may not use it commercially, deploy it to production or
+   redistribute modified versions.
+
+Full terms — see the [LICENSE](LICENSE) file.
+
+For commercial use — contact via the repo issue tracker.
 
 ---
 
-## 🙏 Dėkoju
+## 👤 Author
 
-- [FastAPI](https://fastapi.tiangolo.com/) — moderniausias Python web framework'as
-- [SQLAlchemy](https://www.sqlalchemy.org/) — Python ORM standartas
-- [cryptography](https://cryptography.io/) — Python kriptografijos biblioteka
-- [Tailwind CSS](https://tailwindcss.com/) — utility-first CSS framework'as
-- [Oracle Cloud Free Tier](https://www.oracle.com/cloud/free/) — nemokamas ARM serveris
+**Konrad Lorenz** — university final project author
+
+The project was built independently in ~50 hours, fully documented
+according to a strict session protocol (`03_PROGRESO_PROTOKOLAS.txt`).
+
+---
+
+## 🙏 Acknowledgments
+
+- [FastAPI](https://fastapi.tiangolo.com/) — modern Python web framework
+- [SQLAlchemy](https://www.sqlalchemy.org/) — Python ORM standard
+- [cryptography](https://cryptography.io/) — Python cryptography library
+- [Tailwind CSS](https://tailwindcss.com/) — utility-first CSS framework
+- [Oracle Cloud Free Tier](https://www.oracle.com/cloud/free/) — free ARM server
 
 ---
 
 <div align="center">
 
-⭐ Jei projektas patinka — duokite žvaigždutę ant GitHub!
+⭐ If you like the project — give it a star on GitHub!
+
+📖 **Lietuvišką versiją galite rasti čia → [README.lt.md](README.lt.md)**
 
 </div>
