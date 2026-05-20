@@ -127,6 +127,11 @@ class Settings(BaseSettings):
     # Mėnesio sumai pasiekus limitą - transfer'iai blokuojami iki kito mėn.
     monthly_transfer_limit_gb: int = Field(default=20, gt=0)
 
+    # Administratoriaus mėnesinio srauto limitas (GB).
+    # Adminui storage ir failo dydis NERIBOJAMI, bet srautas paliekamas
+    # apribotas atsargai (apsauga nuo netyčinio serverio srauto išnaudojimo).
+    admin_monthly_transfer_limit_gb: int = Field(default=1000, gt=0)
+
     # Chunk dydis šifravimui/dešifravimui (bytes)
     # 64KB = pakankamai mažas, kad netektų krauti viso failo į RAM
     # Bet ne per mažas, kad nesukeltų per daug I/O operacijų
@@ -263,6 +268,15 @@ class Settings(BaseSettings):
         grąžina: (int) - max mėnesinio srauto kiekis baitais
         """
         return self.monthly_transfer_limit_gb * 1024 * 1024 * 1024
+
+    @property
+    def admin_monthly_transfer_limit_bytes(self) -> int:
+        """
+        gauna: nieko (savybė)
+        daro: konvertuoja admin_monthly_transfer_limit_gb į bytes
+        grąžina: (int) - admino max mėnesinio srauto kiekis baitais
+        """
+        return self.admin_monthly_transfer_limit_gb * 1024 * 1024 * 1024
 
     @property
     def session_expire_seconds(self) -> int:

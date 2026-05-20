@@ -1091,7 +1091,7 @@ async function init() {
   document.getElementById('dd-role').textContent = S.user.is_admin ? 'Administratorius' : 'Vartotojas';
   if (S.user.is_admin) document.getElementById('admin-link').classList.remove('hidden');
 
-  updateStorageUI(S.user.storage_used_bytes, 2 * 1024 * 1024 * 1024);
+  updateStorageUI(S.user.storage_used_bytes, S.user.is_admin ? null : 2 * 1024 * 1024 * 1024);
 
   // Transfer quota - paimam iš naujo endpoint'o ir atnaujinam UI.
   // Tada periodiškai (kas 60s) - kad real-time atspindėtų uploadus/downloadus.
@@ -1141,6 +1141,19 @@ async function updateTransferQuotaUI() {
 ==================================================== */
 function updateStorageUI(usedBytes, totalBytes) {
   const usedMB = (usedBytes / 1024 / 1024).toFixed(0);
+
+  // Adminas (totalBytes=null) - storage neribojamas: rodom naudojimą + ∞
+  if (totalBytes === null) {
+    document.getElementById('storage-used-txt').textContent = usedMB + ' MB';
+    document.getElementById('storage-total-txt').textContent = '∞';
+    document.getElementById('storage-bar').style.width = '0%';
+    document.getElementById('sidebar-storage-pct').textContent = '∞';
+    document.getElementById('sidebar-storage-bar').style.width = '0%';
+    document.getElementById('sidebar-storage-txt').textContent =
+      `${usedMB} MB (neribota)`;
+    return;
+  }
+
   const totalGB = (totalBytes / 1024 / 1024 / 1024).toFixed(0);
   const pct = Math.min(100, Math.round(usedBytes / totalBytes * 100));
 
@@ -1578,10 +1591,13 @@ async function uploadFiles(files) {
   panel.classList.add('visible');
 
   // ── Atmesti per didelius failus PRIEŠ upload'inant ──
-  // Apsauga nuo bandwidth eikvojimo + 500MB+ failai užblokuotų UI
+  // Apsauga nuo bandwidth eikvojimo + 500MB+ failai užblokuotų UI.
+  // Adminui failo dydis neribojamas - praleidžiam šį tikrinimą.
   const tooBig = [];
-  for (const f of files) {
-    if (f.size > MAX_FILE_SIZE_BYTES) tooBig.push(f);
+  if (!(S.user && S.user.is_admin)) {
+    for (const f of files) {
+      if (f.size > MAX_FILE_SIZE_BYTES) tooBig.push(f);
+    }
   }
   if (tooBig.length > 0) {
     const names = tooBig.map(f =>
@@ -2084,7 +2100,7 @@ async function logout() {
 async function refreshUser() {
   try {
     S.user = await apiJson('GET', '/auth/me');
-    updateStorageUI(S.user.storage_used_bytes, 2 * 1024 * 1024 * 1024);
+    updateStorageUI(S.user.storage_used_bytes, S.user.is_admin ? null : 2 * 1024 * 1024 * 1024);
   } catch(e) {}
 }
 

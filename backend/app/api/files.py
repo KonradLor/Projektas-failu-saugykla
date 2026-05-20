@@ -48,6 +48,10 @@ from app.models.folder import Folder
 from app.models.user import User
 from app.schemas.file import FileListResponse, FileResponse, FileUpdate
 from app.utils.api_helpers import get_user_decryption_key
+from app.utils.limits import max_file_size_bytes as limits_max_file_size_bytes
+from app.utils.limits import storage_limit_bytes as limits_storage_bytes
+from app.utils.limits import transfer_limit_bytes as limits_transfer_bytes
+from app.utils.limits import transfer_limit_gb as limits_transfer_gb
 from app.utils.transfer_quota import add_usage as quota_add_usage
 from app.utils.transfer_quota import check_quota as quota_check
 from app.utils.transfer_quota import ensure_current_period as quota_ensure_period
@@ -192,10 +196,12 @@ async def upload_file(
     # 3. Saugyklos limito preliminarus tikrinimas
     # (tikslesnis tikrinimas po stream'inimo, kai žinome tikrą dydį)
     # ----------------------------------------
-    available_bytes = settings.max_storage_per_user_bytes - current_user.storage_used_bytes
+    user_storage_limit = limits_storage_bytes(current_user)
+    user_file_size_limit = limits_max_file_size_bytes(current_user)
+    available_bytes = user_storage_limit - current_user.storage_used_bytes
     if available_bytes <= 0:
         used_mb = round(current_user.storage_used_bytes / (1024 * 1024), 1)
-        max_mb = settings.max_storage_per_user_mb
+        max_mb = round(user_storage_limit / (1024 * 1024), 1)
         raise HTTPException(
             status_code=status.HTTP_507_INSUFFICIENT_STORAGE,
             detail=(
@@ -208,20 +214,20 @@ async def upload_file(
     # 3.1 Mėnesinio srauto (transfer quota) preliminarus tikrinimas
     # ----------------------------------------
     quota_ensure_period(current_user, db)
-    transfer_remaining = settings.monthly_transfer_limit_bytes - current_user.transfer_used_bytes
+    transfer_remaining = limits_transfer_bytes(current_user) - current_user.transfer_used_bytes
     if transfer_remaining <= 0:
         used_gb = round(current_user.transfer_used_bytes / (1024 ** 3), 2)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=(
-                f"Viršytas mėnesinis {settings.monthly_transfer_limit_gb} GB srauto limitas. "
+                f"Viršytas mėnesinis {limits_transfer_gb(current_user)} GB srauto limitas. "
                 f"Sunaudota: {used_gb} GB. Skaitiklis bus nulinamas kito mėnesio 1-ąją."
             ),
         )
 
     # Maksimalus šio upload'o dydis = min(failo limitas, likusi vieta, likęs srautas)
     upload_limit = min(
-        settings.max_file_size_bytes,
+        user_file_size_limit,
         available_bytes,
         transfer_remaining,
     )
@@ -241,14 +247,15 @@ async def upload_file(
         if file_size := getattr(file, "_total", 0):
             pass
         # Atskiriame: failas didesnis už absoliutų limitą vs už likusią vietą
-        if upload_limit == settings.max_file_size_bytes:
+        if upload_limit == user_file_size_limit:
+            max_file_mb = round(user_file_size_limit / (1024 * 1024), 1)
             raise HTTPException(
                 status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                detail=f"Failas per didelis. Maksimalus dydis: {settings.max_file_size_mb} MB.",
+                detail=f"Failas per didelis. Maksimalus dydis: {max_file_mb} MB.",
             )
         else:
             used_mb = round(current_user.storage_used_bytes / (1024 * 1024), 1)
-            max_mb = settings.max_storage_per_user_mb
+            max_mb = round(user_storage_limit / (1024 * 1024), 1)
             raise HTTPException(
                 status_code=status.HTTP_507_INSUFFICIENT_STORAGE,
                 detail=(

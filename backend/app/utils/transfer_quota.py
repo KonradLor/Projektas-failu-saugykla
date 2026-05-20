@@ -30,6 +30,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.user import User
+from app.utils.limits import transfer_limit_bytes, transfer_limit_gb
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +99,7 @@ def check_quota(user: User, additional_bytes: int, db: Session) -> None:
     """
     ensure_current_period(user, db)
 
-    limit = settings.monthly_transfer_limit_bytes
+    limit = transfer_limit_bytes(user)
     used = user.transfer_used_bytes
     after = used + max(0, additional_bytes)
 
@@ -108,7 +109,7 @@ def check_quota(user: User, additional_bytes: int, db: Session) -> None:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=(
-                f"Viršijote mėnesinį {settings.monthly_transfer_limit_gb} GB srauto limitą. "
+                f"Viršijote mėnesinį {transfer_limit_gb(user)} GB srauto limitą. "
                 f"Sunaudota: {_format_bytes(used)}, "
                 f"liko: {_format_bytes(remaining)}. "
                 f"Skaitiklis bus nulinamas: {next_reset.isoformat()}."
@@ -152,7 +153,7 @@ def get_quota_info(user: User, db: Session) -> dict[str, Any]:
     """
     ensure_current_period(user, db)
     used = user.transfer_used_bytes
-    limit = settings.monthly_transfer_limit_bytes
+    limit = transfer_limit_bytes(user)
     remaining = max(0, limit - used)
     next_reset = _next_period_start(user.transfer_period_start)
     percent = (used / limit * 100) if limit > 0 else 0.0
@@ -162,7 +163,7 @@ def get_quota_info(user: User, db: Session) -> dict[str, Any]:
         "limit_bytes": limit,
         "remaining_bytes": remaining,
         "used_gb": round(used / (1024 ** 3), 3),
-        "limit_gb": settings.monthly_transfer_limit_gb,
+        "limit_gb": transfer_limit_gb(user),
         "remaining_gb": round(remaining / (1024 ** 3), 3),
         "period_start": user.transfer_period_start.isoformat(),
         "next_reset": next_reset.isoformat(),
