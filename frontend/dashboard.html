@@ -2067,11 +2067,18 @@ document.addEventListener('click', e => {
 });
 
 async function logout() {
+  // Pirma išvalom KonradVault sesiją (cookie)
   try { await api('POST', '/auth/logout'); } catch(e) {}
-  // SVARBU: SSO logout. Vien app sesijos išvalymo NEUŽTENKA - Caddy
-  // forward-auth iškart vėl įleistų (Authentik SSO sesija dar galioja).
-  // Nukreipiam į Authentik invalidation flow, kuris išvalo SSO sesiją.
-  window.location.href = 'https://auth.kondev.app/if/flow/default-invalidation-flow/';
+
+  // Adminas jungiasi per Google SSO -> reikia išvalyti ir Authentik SSO sesiją.
+  // 'vault-logout' flow: UserLogoutStage -> Redirect Stage (-> /vault/).
+  // Eiliniai vartotojai SSO sesijos neturi -> einam tiesiai į /vault/
+  // (nereikia jų be reikalo siųsti per Authentik).
+  if (S.user && S.user.is_admin) {
+    window.location.href = 'https://auth.kondev.app/if/flow/vault-logout/';
+  } else {
+    window.location.href = '/vault/';
+  }
 }
 
 async function refreshUser() {
