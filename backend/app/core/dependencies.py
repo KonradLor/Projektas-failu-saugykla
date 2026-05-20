@@ -29,10 +29,16 @@ SESSION TIKRINIMO SRAUTAS:
 # IMPORTAI
 # ============================================
 import logging
+import secrets
+from datetime import datetime, timezone
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+from app.config import settings
+from app.core.encryption import encrypt_user_key, generate_user_key
+from app.core.security import hash_password
+from app.core.totp import generate_totp_secret
 from app.database import get_db
 from app.models.session import Session as UserSession
 from app.models.user import User
@@ -46,6 +52,62 @@ logger = logging.getLogger(__name__)
 
 # Cookie pavadinimas – turi sutapti su tuo, kas nustatoma login metu
 SESSION_COOKIE_NAME = "konradvault_session"
+
+# ============================================
+# SSO (Authentik forward-auth per Caddy)
+# ============================================
+# Caddy forward-auth, po sėkmingos Authentik/Google autentifikacijos,
+# prideda šiuos header'ius KIEKVIENAI užklausai. Jų buvimas = vartotojas
+# autentifikuotas (patikrinta Caddy+Authentik kiekvienam request'ui).
+# SAUGUMAS: Caddy strip'ina kliento atsiųstus X-Authentik-* (negalima suklastoti).
+SSO_USERNAME_HEADER = "x-authentik-username"
+SSO_EMAIL_HEADER = "x-authentik-email"
+
+
+def _get_or_create_sso_user(username: str, email: str | None, db: Session) -> User:
+    """
+    gauna: username (str) – iš X-Authentik-Username header'io
+           email (str|None) – iš X-Authentik-Email header'io
+           db (Session) – DB sesija
+    daro: suranda vartotoją pagal username; jei nėra – sukuria naują SSO
+          vartotoją (su šifravimo raktu, be slaptažodžio/TOTP). PIRMAS
+          sukurtas vartotojas tampa adminu.
+    grąžina: (User) – esamas arba naujai sukurtas vartotojas
+
+    Šifravimo raktas generuojamas naujas ir užšifruojamas MASTER_KEY
+    (kaip ir registracijos metu). Slaptažodis/TOTP nenaudojami (SSO),
+    bet DB stulpeliai NOT NULL – todėl įrašom dummy reikšmes.
+    """
+    username = (username or "").strip()[:50]
+    user = db.query(User).filter(User.username == username).first()
+    if user is not None:
+        return user
+
+    # Pirmas vartotojas sistemoje -> adminas
+    is_first = db.query(User).count() == 0
+
+    raw_key = generate_user_key()
+    enc_key = encrypt_user_key(raw_key, settings.master_key)
+
+    new_user = User(
+        username=username,
+        password_hash=hash_password(secrets.token_hex(32)),  # nenaudojamas (SSO)
+        totp_secret=generate_totp_secret(),                   # nenaudojamas, bet NOT NULL
+        encryption_key_encrypted=enc_key,
+        is_admin=is_first,
+        is_active=True,
+        storage_used_bytes=0,
+        created_at=datetime.now(timezone.utc),
+    )
+    new_user.last_login = datetime.now(timezone.utc)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    logger.info(
+        f"SSO: sukurtas naujas vartotojas '{username}' "
+        f"(id={new_user.id}, admin={is_first}, email={email})"
+    )
+    return new_user
 
 
 # ============================================
@@ -90,7 +152,22 @@ def get_current_user(
         def list_files(user: User = Depends(get_current_user)):
             ...
     """
-    # 1. Gauname token'ą iš cookie'aus
+    # 0. SSO forward-auth (Authentik per Caddy) – pirmenybė.
+    #    Jei yra X-Authentik-Username header'is, vartotojas autentifikuotas
+    #    per Google SSO. Surandam/sukuriam vartotoją ir grąžinam (jokios
+    #    KonradVault sesijos nereikia – Caddy tikrina kiekvieną request'ą).
+    sso_username = request.headers.get(SSO_USERNAME_HEADER)
+    if sso_username:
+        sso_email = request.headers.get(SSO_EMAIL_HEADER)
+        user = _get_or_create_sso_user(sso_username, sso_email, db)
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Jūsų paskyra deaktyvuota. Susisiekite su administratoriumi.",
+            )
+        return user
+
+    # 1. Gauname token'ą iš cookie'aus (senas login – fallback)
     token = get_session_token_from_cookie(request)
 
     # 2. Ieškome sesijos DB pagal token'ą (Session.token yra PRIMARY KEY – greita)
