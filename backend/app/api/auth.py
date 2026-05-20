@@ -591,6 +591,60 @@ def get_me(
 
 
 # ============================================
+# GET /api/auth/sso-login  (admin Google SSO)
+# ============================================
+# Šis kelias Caddy'je apsaugotas forward-auth (TIK /vault/sso-login).
+# Kai admin spaudžia "Login with Google" vault login puslapyje, patenka
+# čia su X-Authentik-Username header'iu. Sukuriam/randam vartotoją,
+# sukuriam KonradVault sesiją (cookie) ir nukreipiam į dashboard.
+# Eiliniai vartotojai šito NEnaudoja - jie registruojasi normaliai.
+
+@router.get("/sso-login", include_in_schema=False)
+def sso_login(request: Request, db: Session = Depends(get_db)):
+    from fastapi.responses import RedirectResponse
+    from app.core.dependencies import _get_or_create_sso_user, SESSION_COOKIE_NAME
+
+    sso_username = request.headers.get("x-authentik-username")
+    if not sso_username:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="SSO header trūksta (kelias turi eiti per forward-auth).",
+        )
+    sso_email = request.headers.get("x-authentik-email")
+    user = _get_or_create_sso_user(sso_username, sso_email, db)
+
+    # Sukuriam KonradVault sesiją (kad admin liktų prisijungęs viešuose
+    # /vault/ puslapiuose, kur SSO header'is strip'inamas)
+    session_token = generate_session_token()
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else None)
+    )
+    new_session = UserSession(
+        token=session_token,
+        user_id=user.id,
+        ip_address=client_ip,
+        user_agent=request.headers.get("user-agent", "")[:500] or None,
+    )
+    db.add(new_session)
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
+
+    resp = RedirectResponse(url="/vault/dashboard.html", status_code=302)
+    resp.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        httponly=True,
+        secure=not settings.debug,
+        samesite="lax",
+        max_age=settings.session_expire_seconds,
+        path="/",
+    )
+    logger.info(f"SSO login: '{user.username}' (id={user.id})")
+    return resp
+
+
+# ============================================
 # GET /api/auth/me-transfer-quota
 # ============================================
 # Grąžina vartotojo einamojo mėnesio srauto info: used/limit/remaining/percent.

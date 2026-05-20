@@ -1025,6 +1025,22 @@
     <p class="text-slate-700 text-xs mt-1">
       Visi failai šifruojami · jokios reklamos · skirta demonstracijai
     </p>
+
+    <!-- Admin SSO: prisijungimas su Google (forward-auth /vault/api/auth/sso-login) -->
+    <div class="mt-6">
+      <a href="/vault/api/auth/sso-login"
+         class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                bg-white/5 hover:bg-white/10 border border-white/10
+                text-slate-400 hover:text-white text-xs font-medium transition">
+        <svg width="14" height="14" viewBox="0 0 48 48">
+          <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C12.955 4 4 12.955 4 24s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+          <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4C16.318 4 9.656 8.337 6.306 14.691z"/>
+          <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+          <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+        </svg>
+        Admin login (Google)
+      </a>
+    </div>
   </div>
 </footer>
 
@@ -1203,16 +1219,6 @@
           <label class="block text-slate-300 text-sm font-medium mb-1.5">Vartotojo vardas</label>
           <input id="login-username" type="text" class="input-glow" placeholder="jūsų_vardas"
                  autocomplete="username"
-                 onblur="autoToggleLoginPassword()"
-                 onkeydown="if(event.key==='Enter') autoToggleLoginPasswordAndFocus()" />
-        </div>
-        <div id="login-password-wrap">
-          <label class="block text-slate-300 text-sm font-medium mb-1.5">
-            Slaptažodis
-            <span class="text-xs text-slate-500 font-normal">(tik administratoriams)</span>
-          </label>
-          <input id="login-password" type="password" class="input-glow" placeholder="••••••••"
-                 autocomplete="current-password"
                  onkeydown="if(event.key==='Enter') submitLogin()" />
         </div>
       </div>
@@ -1616,7 +1622,6 @@
     document.getElementById('login-step-2').classList.add('hidden');
     document.getElementById('login-error').classList.add('hidden');
     document.getElementById('login-username').value = '';
-    document.getElementById('login-password').value = '';
     setTimeout(() => document.getElementById('login-username').focus(), 350);
   }
   function closeLogin() {
@@ -1628,70 +1633,13 @@
   }
 
   /* =============================================
-     HIBRIDINIS LOGIN HELPER'IAI
-     - Adminams reikia password + TOTP
-     - Reguliariems – tik TOTP (be password)
-     - Cache'inam atsakymą per username, kad nedarytume per daug užklausų
+     LOGIN: tik TOTP (Google Authenticator)
+     - Eiliniai vartotojai: username -> TOTP kodas
+     - Administratorius jungiasi per „Login with Google" (SSO) mygtuką,
+       todėl slaptažodžio laukas nebereikalingas.
   ============================================= */
-  let _loginPasswordRequired = null;
-  let _loginCheckedUsername  = '';
-
-  async function checkLoginMethod(username) {
-    // Cache: jei jau patikrinom šitą username – grąžinam saugotą atsakymą
-    if (_loginCheckedUsername === username && _loginPasswordRequired !== null) {
-      return _loginPasswordRequired;
-    }
-    try {
-      const r = await fetch('/vault/api/auth/login-method', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username }),
-      });
-      if (!r.ok) return true;   // Saugiai – default'as „reikia password"
-      const data = await r.json();
-      _loginCheckedUsername  = username;
-      _loginPasswordRequired = data.requires_password;
-      return data.requires_password;
-    } catch (e) {
-      return true;              // Tinklo klaida → saugiai default'iname į „reikia password"
-    }
-  }
-
-  async function autoToggleLoginPassword() {
-    const username = document.getElementById('login-username').value.trim().toLowerCase();
-    const wrap     = document.getElementById('login-password-wrap');
-    if (!wrap) return;
-
-    if (!username) {
-      wrap.style.display = '';   // tuščias username – rodom password lauką
-      return;
-    }
-
-    const needsPw = await checkLoginMethod(username);
-    wrap.style.display = needsPw ? '' : 'none';
-
-    // Jei password nereikia – išvalom lauką, kad neišsiųstume tuščio
-    if (!needsPw) {
-      const pwEl = document.getElementById('login-password');
-      if (pwEl) pwEl.value = '';
-    }
-  }
-
-  async function autoToggleLoginPasswordAndFocus() {
-    await autoToggleLoginPassword();
-    const wrap = document.getElementById('login-password-wrap');
-    if (wrap && wrap.style.display !== 'none') {
-      // Adminas – fokusuojame į password lauką
-      document.getElementById('login-password').focus();
-    } else {
-      // Reguliarus – iškart pereiname į TOTP
-      submitLogin();
-    }
-  }
-
   async function submitLogin() {
     const username = document.getElementById('login-username').value.trim().toLowerCase();
-    const password = document.getElementById('login-password').value;
     const errEl    = document.getElementById('login-error');
     const btn      = document.getElementById('btn-login');
     const btnTxt   = document.getElementById('btn-login-text');
@@ -1704,45 +1652,20 @@
       return;
     }
 
-    // Hibridinis sprendimas: pagal vartotoją renkame endpoint'ą
-    const needsPassword = await checkLoginMethod(username);
-
-    if (needsPassword && !password) {
-      // Adminui reikia password – parodom lauką ir prašom įvesti
-      const wrap = document.getElementById('login-password-wrap');
-      if (wrap) wrap.style.display = '';
-      errEl.textContent = 'Administratoriams reikia įvesti slaptažodį.';
-      errEl.classList.remove('hidden');
-      setTimeout(() => document.getElementById('login-password').focus(), 100);
-      return;
-    }
-
     btn.disabled = true;
     btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
 
     try {
-      // Renkam endpoint'ą pagal autorizacijos modelį
-      const endpoint = needsPassword ? '/vault/api/auth/login' : '/vault/api/auth/login-totp';
-      const body     = needsPassword ? { username, password } : { username };
-
-      const r = await fetch(endpoint, {
+      const r = await fetch('/vault/api/auth/login-totp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ username }),
       });
       const data = await r.json();
 
       if (!r.ok) {
         errEl.textContent = data.detail || 'Neteisingi duomenys.';
         errEl.classList.remove('hidden');
-
-        // Jei serveris pasako, kad adminas turi naudoti password – atnaujinam UI
-        if (r.status === 403 && data.detail && data.detail.includes('slaptažodžiu')) {
-          _loginPasswordRequired = true;
-          _loginCheckedUsername  = username;
-          const wrap = document.getElementById('login-password-wrap');
-          if (wrap) wrap.style.display = '';
-        }
         return;
       }
 
