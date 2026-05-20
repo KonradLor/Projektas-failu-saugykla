@@ -2068,7 +2068,10 @@ document.addEventListener('click', e => {
 
 async function logout() {
   try { await api('POST', '/auth/logout'); } catch(e) {}
-  window.location.href = '/vault/konradvault.html';
+  // SVARBU: SSO logout. Vien app sesijos išvalymo NEUŽTENKA - Caddy
+  // forward-auth iškart vėl įleistų (Authentik SSO sesija dar galioja).
+  // Nukreipiam į Authentik invalidation flow, kuris išvalo SSO sesiją.
+  window.location.href = 'https://auth.kondev.app/if/flow/default-invalidation-flow/';
 }
 
 async function refreshUser() {
