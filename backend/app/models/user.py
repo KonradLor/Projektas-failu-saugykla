@@ -18,12 +18,18 @@ RYŠIAI:
 # ============================================
 # IMPORTAI
 # ============================================
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import BigInteger, Boolean, DateTime, LargeBinary, String, Text
+from sqlalchemy import BigInteger, Boolean, Date, DateTime, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+
+
+def _current_period_start() -> date:
+    """Grąžina einamojo mėnesio 1-ąją (UTC). Naudojama default reikšmei."""
+    today = datetime.now(timezone.utc).date()
+    return today.replace(day=1)
 
 
 # ============================================
@@ -135,6 +141,34 @@ class User(Base):
         nullable=False,
         default=0,
         comment="Bendras disko vietos naudojimas baitais (visų failų suma)",
+    )
+
+    # ----------------------------------------
+    # MĖNESINIO SRAUTO STEBĖJIMAS (transfer quota)
+    # ----------------------------------------
+
+    # Kiek baitų vartotojas perdavė einamąjį mėnesį.
+    # Į šitą skaitiklį įeina:
+    #   - savo failo įkėlimas (upload)
+    #   - savo failo atsisiuntimas (download)
+    #   - share atsisiuntimas (charge'inamas FAILO SAVININKAS, ne svetainės lankytojas)
+    # Mėnesio pasikeitimo metu (transfer_period_start != einamasis mėnuo)
+    # skaitiklis nulinamas helper'yje utils/transfer_quota.py.
+    transfer_used_bytes: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        default=0,
+        comment="Einamojo mėnesio srauto skaitiklis (baitai)",
+    )
+
+    # Einamojo periodo (mėnesio) pradžios data - 1-oji diena (UTC).
+    # Helper'is utils/transfer_quota.py automatiškai persuka šitą datą
+    # ir nulina skaitiklį, kai įvyksta naujas mėnuo.
+    transfer_period_start: Mapped[date] = mapped_column(
+        Date,
+        nullable=False,
+        default=_current_period_start,
+        comment="Einamojo srauto periodo pradžia (mėnesio 1-oji)",
     )
 
     # ----------------------------------------

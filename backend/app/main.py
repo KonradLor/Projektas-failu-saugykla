@@ -21,17 +21,38 @@ API DOKUMENTACIJA (Swagger UI):
 # IMPORTAI
 # ============================================
 import logging
+import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app import __app_name__, __description__, __version__
 from app.config import settings
 from app.core.logging_config import setup_logging
 from app.database import check_db_connection, init_db
+
+
+# ============================================
+# FRONTEND DIRECTORY (Docker setup)
+# ============================================
+# Docker konteineryje frontend kopijuojamas į /app/frontend.
+# Šis main.py yra /app/app/main.py, tad frontend yra 2 lygiais aukščiau.
+# Jei FRONTEND_DIR env var nustatytas - naudojame jį.
+# Path(__file__)  = /app/app/main.py (Docker konteineryje)
+# .parent         = /app/app
+# .parent.parent  = /app
+# / "frontend"    = /app/frontend  <- Docker layout
+FRONTEND_DIR = Path(
+    os.getenv(
+        "FRONTEND_DIR",
+        str(Path(__file__).resolve().parent.parent / "frontend"),
+    )
+)
 
 
 # ============================================
@@ -325,20 +346,37 @@ async def health_check():
 
 
 # ============================================
-# ROOT ENDPOINT
+# FRONTEND STATIC FILES + SERVER-SIDE ROUTES
 # ============================================
+# Docker setup'e FastAPI pati serveruoja frontend (HTML/CSS/JS) - nereikia
+# atskiro nginx konteinerio. Tvarka svarbu: explicit route'ai (`/`, `/share/`)
+# turi būti REGISTRUOTI PRIEŠ StaticFiles mount.
 
-@app.get("/", tags=["Root"])
+@app.get("/", include_in_schema=False)
 async def root():
     """
-    gauna: nieko
-    daro: paprastas welcome endpoint'as. Production'e Nginx perima šitą URL
-          ir rodo frontend'ą - šitas endpoint'as iškviečiamas tik jei kreipiamasi
-          tiesiai į FastAPI (ne per Nginx).
-    grąžina: (dict) - paprasta žinutė
+    Root URL grąžina login puslapį (konradvault.html).
+    Šis maršrutas atstoja seną nginx 'try_files /konradvault.html' direktyvą.
     """
-    return {
-        "message": f"{__app_name__} API",
-        "version": __version__,
-        "docs": "/docs" if settings.debug else "Documentation disabled in production",
-    }
+    return FileResponse(FRONTEND_DIR / "konradvault.html")
+
+
+@app.get("/share/{token}", include_in_schema=False)
+async def share_page(token: str):
+    """
+    Share URL'ai turi formą /share/{token}.
+    Frontend JS pats nuskaitys token'ą iš URL ir kreipsis į /api/share/public/{token}.
+    Šis maršrutas atstoja seną nginx '/share/...' regex direktyvą.
+    """
+    return FileResponse(FRONTEND_DIR / "share.html")
+
+
+# StaticFiles mount'as PASKUTINIS - jis tarnauja viskam, kas neatitiko anksčiau
+# registruotų route'ų (pvz., /dashboard.html, /admin.html, /css/..., /js/...).
+# `html=True` reiškia, kad katalogo prieigos atveju ieško index.html (mums
+# nereikia, bet niekam nekenkia).
+app.mount(
+    "/",
+    StaticFiles(directory=FRONTEND_DIR, html=True),
+    name="frontend",
+)

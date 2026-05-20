@@ -305,6 +305,13 @@
       border-radius: 2px;
       transition: width .6s ease;
     }
+    /* ── TRANSFER QUOTA BAR (mėnesinis srauto limitas) ────── */
+    .transfer-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg,#f59e0b,#fb923c);
+      border-radius: 2px;
+      transition: width .6s ease;
+    }
 
     /* ── UPLOAD PROGRESS PANEL ──────────────────── */
     #upload-panel {
@@ -550,7 +557,7 @@
 ================================================ -->
 <nav id="topnav">
   <!-- Logo -->
-  <a href="/konradvault.html" class="flex items-center gap-2 mr-2 shrink-0">
+  <a href="/vault/konradvault.html" class="flex items-center gap-2 mr-2 shrink-0">
     <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600
                 flex items-center justify-center shadow-md shadow-indigo-500/30">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round">
@@ -609,7 +616,7 @@
     </button>
 
     <!-- Admin nuoroda (rodoma tik admin) -->
-    <a href="/admin.html" id="admin-link" class="btn-icon btn hidden" title="Admin">
+    <a href="/vault/admin.html" id="admin-link" class="btn-icon btn hidden" title="Admin">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
         <circle cx="12" cy="8" r="4"/>
         <path d="M20 21a8 8 0 1 0-16 0"/>
@@ -710,6 +717,19 @@
           <div id="sidebar-storage-bar" class="storage-bar-fill" style="width:0%"></div>
         </div>
         <div class="text-xs text-slate-600" id="sidebar-storage-txt">…</div>
+      </div>
+
+      <!-- Transfer quota (mėnesinis srautas) -->
+      <div class="pt-3 px-1" id="transfer-widget">
+        <div class="flex justify-between text-xs text-slate-500 mb-1.5">
+          <span title="Įkėlimas + atsisiuntimas + share atsisiuntimai">Mėn. srautas</span>
+          <span id="sidebar-transfer-pct">…</span>
+        </div>
+        <div class="storage-bar-bg mb-1">
+          <div id="sidebar-transfer-bar" class="transfer-bar-fill" style="width:0%"></div>
+        </div>
+        <div class="text-xs text-slate-600" id="sidebar-transfer-txt">…</div>
+        <div class="text-[10px] text-slate-700 mt-1" id="sidebar-transfer-reset">…</div>
       </div>
 
     </div>
@@ -1038,8 +1058,8 @@ async function api(method, path, body, signal) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
   }
-  const r = await fetch('/api' + path, opts);
-  if (r.status === 401) { window.location.href = '/konradvault.html'; throw new Error('401'); }
+  const r = await fetch('/vault/api' + path, opts);
+  if (r.status === 401) { window.location.href = '/vault/konradvault.html'; throw new Error('401'); }
   return r;
 }
 
@@ -1059,7 +1079,7 @@ async function init() {
   try {
     S.user = await apiJson('GET', '/auth/me');
   } catch(e) {
-    window.location.href = '/konradvault.html';
+    window.location.href = '/vault/konradvault.html';
     return;
   }
 
@@ -1073,8 +1093,47 @@ async function init() {
 
   updateStorageUI(S.user.storage_used_bytes, 2 * 1024 * 1024 * 1024);
 
+  // Transfer quota - paimam iš naujo endpoint'o ir atnaujinam UI.
+  // Tada periodiškai (kas 60s) - kad real-time atspindėtų uploadus/downloadus.
+  await updateTransferQuotaUI();
+  setInterval(updateTransferQuotaUI, 60000);
+
   await loadFolderTree();
   await loadFiles(null);
+}
+
+/* ====================================================
+   TRANSFER QUOTA UI (mėnesinis srauto limitas)
+==================================================== */
+async function updateTransferQuotaUI() {
+  try {
+    const r = await fetch('/vault/api/auth/me-transfer-quota', { credentials: 'include' });
+    if (!r.ok) return;
+    const data = await r.json();
+
+    const pct = Math.min(100, Math.round(data.percent_used));
+    const usedGB = data.used_gb.toFixed(2);
+    const limitGB = data.limit_gb;
+
+    document.getElementById('sidebar-transfer-pct').textContent = pct + '%';
+    document.getElementById('sidebar-transfer-bar').style.width = pct + '%';
+    document.getElementById('sidebar-transfer-txt').textContent =
+      `${usedGB} GB iš ${limitGB} GB`;
+    document.getElementById('sidebar-transfer-reset').textContent =
+      `Reset: ${data.next_reset}`;
+
+    // Įspėjimo spalvos kai virš 70% / 90%
+    const bar = document.getElementById('sidebar-transfer-bar');
+    if (pct >= 90) {
+      bar.style.background = '#ef4444';
+    } else if (pct >= 70) {
+      bar.style.background = '#f97316';
+    } else {
+      bar.style.background = '';  // grįžta į CSS default (amber gradient)
+    }
+  } catch (e) {
+    // Tylėjam - kvota yra "nice to have", neturėtų lūžinėti UI
+  }
 }
 
 /* ====================================================
@@ -1330,7 +1389,7 @@ function makeFileCard(f) {
   if (isImg) {
     // Thumbnail endpoint'as grąžina mažą JPEG (~10-50KB), ne pilną failą.
     // Jei thumbnail'as dar nesugeneruotas (senas failas) → 404 → fallback į emoji.
-    thumbHtml += `<img src="/api/files/${f.id}/thumbnail"
+    thumbHtml += `<img src="/vault/api/files/${f.id}/thumbnail"
       onerror="this.parentElement.innerHTML='🖼️'" loading="lazy" alt="" />`;
   } else {
     thumbHtml += emoji;
@@ -1572,7 +1631,7 @@ function uploadSingle(file, uid) {
     if (S.currentFolderId !== null) fd.append('folder_id', S.currentFolderId);
 
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/files/upload');
+    xhr.open('POST', '/vault/api/files/upload');
     xhr.withCredentials = true;
 
     xhr.upload.onprogress = e => {
@@ -1645,7 +1704,7 @@ document.addEventListener('drop',     e => e.preventDefault());
 ==================================================== */
 function downloadFile(id, name) {
   const a = document.createElement('a');
-  a.href = `/api/files/${id}/download`;
+  a.href = `/vault/api/files/${id}/download`;
   a.download = name;
   a.click();
 }
@@ -1661,7 +1720,7 @@ async function previewFile(id, name) {
   const f = S.files.find(x => x.id === id);
   const mime = f?.mime_type || '';
 
-  const url = `/api/files/${id}/preview`;
+  const url = `/vault/api/files/${id}/preview`;
   if (mime.startsWith('image/')) {
     document.getElementById('preview-content').innerHTML =
       `<img src="${url}" alt="${esc(name)}" />`;
@@ -2009,7 +2068,7 @@ document.addEventListener('click', e => {
 
 async function logout() {
   try { await api('POST', '/auth/logout'); } catch(e) {}
-  window.location.href = '/konradvault.html';
+  window.location.href = '/vault/konradvault.html';
 }
 
 async function refreshUser() {

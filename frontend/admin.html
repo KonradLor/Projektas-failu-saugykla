@@ -202,7 +202,7 @@
 <!-- Top bar -->
 <header class="topbar">
   <div style="display:flex;align-items:center;gap:.75rem;">
-    <a href="/dashboard.html" class="logo">
+    <a href="/vault/dashboard.html" class="logo">
       <div class="logo-icon">🔐</div>
       Konrad<span class="accent">Vault</span>
     </a>
@@ -407,7 +407,7 @@ async function api(method, path, body) {
     opts.body = JSON.stringify(body);
   }
   const res = await fetch(path, opts);
-  if (res.status === 401) { location.href = '/konradvault.html'; return null; }
+  if (res.status === 401) { location.href = '/vault/konradvault.html'; return null; }
   if (res.status === 403) { toast('Prieiga uždrausti — tik administratoriai.', 'err'); return null; }
   return res;
 }
@@ -458,18 +458,18 @@ function setView(v) {
 function openModal(id)  { document.getElementById(id).classList.add('open');    }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-function goToDashboard() { location.href = '/dashboard.html'; }
+function goToDashboard() { location.href = '/vault/dashboard.html'; }
 
 async function logout() {
-  await api('POST', '/api/auth/logout');
-  location.href = '/konradvault.html';
+  await api('POST', '/vault/api/auth/logout');
+  location.href = '/vault/konradvault.html';
 }
 
 /* ═══════════════════════════════════════════════════════════════
    LOAD STATS
 ═══════════════════════════════════════════════════════════════ */
 async function loadStats() {
-  const res = await api('GET', '/api/admin/stats');
+  const res = await api('GET', '/vault/api/admin/stats');
   if (!res || !res.ok) return;
   stats = await res.json();
   renderStats(stats);
@@ -534,7 +534,7 @@ async function loadUsers() {
   const tbody = document.getElementById('users-tbody');
   tbody.innerHTML = `<tr><td colspan="7"><div class="skel" style="height:3rem;margin:.5rem;border-radius:.4rem;"></div></td></tr>`.repeat(3);
 
-  const res = await api('GET', '/api/admin/users');
+  const res = await api('GET', '/vault/api/admin/users');
   if (!res || !res.ok) return;
   allUsers = await res.json();
   renderUsers(allUsers);
@@ -609,7 +609,7 @@ async function createUserStep() {
     const btn = document.getElementById('cu-btn');
     btn.disabled = true; btn.textContent = 'Kraunama…';
 
-    const res = await api('POST', '/api/admin/users', {
+    const res = await api('POST', '/vault/api/admin/users', {
       username,
       is_admin: role === 'admin',
     });
@@ -655,7 +655,7 @@ async function createUserStep() {
     const btn = document.getElementById('cu-btn');
     btn.disabled = true; btn.textContent = 'Tikrinama…';
 
-    const res = await api('POST', '/api/admin/users/confirm', {
+    const res = await api('POST', '/vault/api/admin/users/confirm', {
       setup_token: cuSetupToken,
       totp_code:   code,
     });
@@ -701,7 +701,7 @@ function openReset2FA(userId, username) {
 
 async function confirmReset2FA() {
   if (!targetUserId) return;
-  const res = await api('POST', `/api/admin/users/${targetUserId}/reset-2fa`);
+  const res = await api('POST', `/vault/api/admin/users/${targetUserId}/reset-2fa`);
   if (!res) return;
 
   if (!res.ok) {
@@ -732,7 +732,7 @@ function openDeleteUser(userId, username) {
 
 async function confirmDeleteUser() {
   if (!targetUserId) return;
-  const res = await api('DELETE', `/api/admin/users/${targetUserId}`);
+  const res = await api('DELETE', `/vault/api/admin/users/${targetUserId}`);
   if (!res) return;
 
   if (!res.ok) {
@@ -791,13 +791,13 @@ document.querySelectorAll('.modal-bg').forEach(bg => {
    INIT
 ═══════════════════════════════════════════════════════════════ */
 async function init() {
-  const res = await api('GET', '/api/auth/me');
+  const res = await api('GET', '/vault/api/auth/me');
   if (!res || !res.ok) return;
   const me = await res.json();
 
   if (!me.is_admin) {
     toast('Prieiga uždrausti — tik administratoriai.', 'err');
-    setTimeout(() => location.href = '/dashboard.html', 1500);
+    setTimeout(() => location.href = '/vault/dashboard.html', 1500);
     return;
   }
 

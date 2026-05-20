@@ -187,11 +187,11 @@
 
 <!-- Top bar -->
 <header class="topbar">
-  <a href="/konradvault.html" class="logo">
+  <a href="/vault/konradvault.html" class="logo">
     <div class="logo-icon">🔐</div>
     Konrad<span class="accent">Vault</span>
   </a>
-  <a href="/konradvault.html"
+  <a href="/vault/konradvault.html"
      style="font-size:.8rem;color:#64748b;text-decoration:none;transition:color .2s;"
      onmouseover="this.style.color='#818cf8'" onmouseout="this.style.color='#64748b'">
     ← Grįžti į pagrindinį
@@ -257,7 +257,7 @@
         Ši dalinimosi nuoroda yra pasibaigusi arba išjungta.
         Kreipkitės į failo savininką dėl naujos nuorodos.
       </p>
-      <a href="/konradvault.html" class="btn-download"
+      <a href="/vault/konradvault.html" class="btn-download"
          style="display:inline-flex;width:auto;padding:.75rem 2rem;margin:0;">
         Grįžti į pradžią
       </a>
@@ -271,7 +271,7 @@
         Tokia dalinimosi nuoroda neegzistuoja.
         Patikrinkite ar teisingai nukopijuotas adresas.
       </p>
-      <a href="/konradvault.html" class="btn-download"
+      <a href="/vault/konradvault.html" class="btn-download"
          style="display:inline-flex;width:auto;padding:.75rem 2rem;margin:0;">
         Grįžti į pradžią
       </a>
@@ -292,7 +292,7 @@
 
   </div><!-- /card -->
 
-  <a href="/konradvault.html" class="kv-link">
+  <a href="/vault/konradvault.html" class="kv-link">
     Apsaugoti savo failus su <span>KonradVault</span> →
   </a>
 </main>
@@ -423,7 +423,7 @@ async function load() {
   if (!token) { show('notfound'); return; }
 
   try {
-    const res = await fetch(`/api/share/public/${encodeURIComponent(token)}`);
+    const res = await fetch(`/vault/api/share/public/${encodeURIComponent(token)}`);
 
     if (res.status === 404) { show('notfound'); return; }
 
@@ -533,7 +533,7 @@ function startDownload() {
   progLabel.textContent   = 'Jungiamasi…';
 
   const xhr = new XMLHttpRequest();
-  xhr.open('GET', `/api/share/public/${encodeURIComponent(token)}/download`, true);
+  xhr.open('GET', `/vault/api/share/public/${encodeURIComponent(token)}/download`, true);
   xhr.responseType = 'blob';
 
   /* progress */

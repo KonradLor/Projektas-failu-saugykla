@@ -48,6 +48,9 @@ from app.models.folder import Folder
 from app.models.user import User
 from app.schemas.file import FileListResponse, FileResponse, FileUpdate
 from app.utils.api_helpers import get_user_decryption_key
+from app.utils.transfer_quota import add_usage as quota_add_usage
+from app.utils.transfer_quota import check_quota as quota_check
+from app.utils.transfer_quota import ensure_current_period as quota_ensure_period
 from app.utils.file_handler import (
     delete_encrypted_file,
     delete_temp_file,
@@ -201,8 +204,27 @@ async def upload_file(
             ),
         )
 
-    # Maksimalus šio upload'o dydis = min(failo limitas, likusi vieta vartotojui)
-    upload_limit = min(settings.max_file_size_bytes, available_bytes)
+    # ----------------------------------------
+    # 3.1 Mėnesinio srauto (transfer quota) preliminarus tikrinimas
+    # ----------------------------------------
+    quota_ensure_period(current_user, db)
+    transfer_remaining = settings.monthly_transfer_limit_bytes - current_user.transfer_used_bytes
+    if transfer_remaining <= 0:
+        used_gb = round(current_user.transfer_used_bytes / (1024 ** 3), 2)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                f"Viršytas mėnesinis {settings.monthly_transfer_limit_gb} GB srauto limitas. "
+                f"Sunaudota: {used_gb} GB. Skaitiklis bus nulinamas kito mėnesio 1-ąją."
+            ),
+        )
+
+    # Maksimalus šio upload'o dydis = min(failo limitas, likusi vieta, likęs srautas)
+    upload_limit = min(
+        settings.max_file_size_bytes,
+        available_bytes,
+        transfer_remaining,
+    )
 
     # ----------------------------------------
     # 4. Streaming upload į laikiną failą (RAM-safe)
@@ -329,6 +351,9 @@ async def upload_file(
     # Atnaujiname vartotojo saugyklos naudojimą
     current_user.storage_used_bytes += file_size
 
+    # Atnaujiname mėnesinio srauto skaitiklį (įkėlimas)
+    quota_add_usage(current_user, file_size, db)
+
     db.commit()
     db.refresh(new_file)
 
@@ -441,6 +466,13 @@ async def download_file(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failas nerastas diske. Kreipkitės į administratorių.",
         )
+
+    # Mėnesinio srauto patikrinimas - ar užteks limito atsisiųsti šį failą
+    # Atsisiuntimas užskaitomas vartotojui, KAIP TIK pradedamas streaming'as
+    # (negalim po fakto - failas jau išsiųstas).
+    quota_check(current_user, file_obj.size_bytes, db)
+    quota_add_usage(current_user, file_obj.size_bytes, db)
+    db.commit()
 
     # Gauname vartotojo šifravimo raktą
     user_key = _get_user_decryption_key(current_user)

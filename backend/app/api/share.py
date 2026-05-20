@@ -44,6 +44,8 @@ from app.models.user import User
 from app.schemas.file import ShareLinkCreate, ShareLinkResponse
 from app.utils.api_helpers import get_user_decryption_key
 from app.utils.file_handler import encrypted_file_exists, get_encrypted_file_path
+from app.utils.transfer_quota import add_usage as quota_add_usage
+from app.utils.transfer_quota import check_quota as quota_check
 
 
 # ============================================
@@ -394,6 +396,27 @@ async def download_public_share(
             status_code=status.HTTP_410_GONE,
             detail="Failas nebepasiekiamas (savininko paskyra deaktyvuota).",
         )
+
+    # ----------------------------------------
+    # Mėnesinio srauto patikrinimas - charge'inam FAILO SAVININKĄ
+    # ----------------------------------------
+    # Logika: jei savininkas pasidalino - jis "moka" už išsiuntimo srautą.
+    # Jei savininko mėnesinis limitas viršytas, share link'as TYLIAI neveikia
+    # (anoniminis lankytojas mato 410 Gone, nes savininkui pasibaigė kvota).
+    try:
+        quota_check(owner, file_obj.size_bytes, db)
+    except HTTPException as exc:
+        # Anonimas neturi matyti tikslios priežasties (saugumo dėlei)
+        logger.info(
+            f"Share atsisiuntimas atmestas dėl savininko kvotos: "
+            f"owner_id={owner.id}, file_id={file_obj.id}"
+        )
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Failas šiuo metu nebepasiekiamas (mėnesinis srauto limitas).",
+        ) from exc
+
+    quota_add_usage(owner, file_obj.size_bytes, db)
 
     # ----------------------------------------
     # ATOMINIS download_count padidinimas

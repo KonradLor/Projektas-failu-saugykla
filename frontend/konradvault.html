@@ -1361,7 +1361,7 @@
 
   async function loadSlots() {
     try {
-      const r = await fetch('/api/auth/register/slots');
+      const r = await fetch('/vault/api/auth/register/slots');
       if (r.ok) {
         _slots = await r.json();
         updateSlotsUI();
@@ -1477,7 +1477,7 @@
     btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
 
     try {
-      const r = await fetch('/api/auth/register', {
+      const r = await fetch('/vault/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
@@ -1535,7 +1535,7 @@
     btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
 
     try {
-      const r = await fetch('/api/auth/register/confirm', {
+      const r = await fetch('/vault/api/auth/register/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ setup_token: setupToken, totp_code: code }),
@@ -1557,7 +1557,7 @@
       goToStep(3);
 
       // Po 2s nukreipiame į dashboard
-      setTimeout(() => { window.location.href = '/dashboard.html'; }, 2200);
+      setTimeout(() => { window.location.href = '/vault/dashboard.html'; }, 2200);
 
     } catch(e) {
       errEl.textContent = 'Serverio klaida. Bandykite dar kartą.';
@@ -1642,7 +1642,7 @@
       return _loginPasswordRequired;
     }
     try {
-      const r = await fetch('/api/auth/login-method', {
+      const r = await fetch('/vault/api/auth/login-method', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
@@ -1722,7 +1722,7 @@
 
     try {
       // Renkam endpoint'ą pagal autorizacijos modelį
-      const endpoint = needsPassword ? '/api/auth/login' : '/api/auth/login-totp';
+      const endpoint = needsPassword ? '/vault/api/auth/login' : '/vault/api/auth/login-totp';
       const body     = needsPassword ? { username, password } : { username };
 
       const r = await fetch(endpoint, {
@@ -1783,7 +1783,7 @@
     btnTxt.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>';
 
     try {
-      const r = await fetch('/api/auth/verify-2fa', {
+      const r = await fetch('/vault/api/auth/verify-2fa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ temp_token: loginTempToken, totp_code: code }),
@@ -1799,7 +1799,7 @@
       }
 
       // Sėkmė – nukreipiame į dashboard
-      window.location.href = '/dashboard.html';
+      window.location.href = '/vault/dashboard.html';
 
     } catch(e) {
       errEl.textContent = 'Serverio klaida.';
@@ -1843,10 +1843,10 @@
 <script>
   (async function checkExistingSession() {
     try {
-      const r = await fetch('/api/auth/me', { credentials: 'include' });
+      const r = await fetch('/vault/api/auth/me', { credentials: 'include' });
       if (r.ok) {
         // Sesija galiojanti – iškart vedam į dashboard'ą
-        window.location.replace('/dashboard.html');
+        window.location.replace('/vault/dashboard.html');
       }
     } catch (e) {
       // Tinklo klaida – tyliai ignoruojam, vartotojas pamatys landing page

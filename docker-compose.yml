@@ -1,0 +1,38 @@
+# ============================================================================
+# KonradVault - docker-compose
+# ============================================================================
+# Paleidimas:    cd /home/ubuntu/server-stack/services/konradvault
+#                docker compose up -d --build
+# Logai:         docker compose logs -f
+# Sustabdymas:   docker compose down
+# Atstatymas:    docker compose down && docker compose up -d --build
+#
+# Caddy reverse proxy'na šį servisą kelyje /vault/* per "web" tinklą,
+# konteinerio vardas "konradvault-backend".
+# ============================================================================
+
+services:
+  konradvault-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: konradvault:latest
+    container_name: konradvault-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      # Duomenys gyvena ant host'o - ne konteineryje
+      # /data konteineryje atitinka:
+      #   /data/konradvault.db    -> SQLite DB
+      #   /data/encrypted/        -> užšifruoti vartotojų failai
+      #   /data/logs/             -> logai (jei rašomi į failą, ne stdout)
+      - /var/server-data/konradvault:/data
+    networks:
+      - web
+    # Nereikia ports: konteineris pasiekiamas tik per Caddy proxy
+    # iš "web" tinklo. Tai apsaugo backend'ą nuo tiesioginės prieigos.
+
+networks:
+  web:
+    external: true

@@ -119,6 +119,14 @@ class Settings(BaseSettings):
     # 2GB = 2048MB - apsauga nuo disk space išnaudojimo
     max_storage_per_user_mb: int = Field(default=2048, gt=0)
 
+    # Maksimalus mėnesinio srauto kiekis vienam vartotojui (GB)
+    # 20GB = standartinis namų vartotojo dydis. Apima:
+    #   - savo failo upload (uždeda counter'į)
+    #   - savo failo download (uždeda counter'į)
+    #   - share download iš išorinių lankytojų (charge'inamas SAVININKAS)
+    # Mėnesio sumai pasiekus limitą - transfer'iai blokuojami iki kito mėn.
+    monthly_transfer_limit_gb: int = Field(default=20, gt=0)
+
     # Chunk dydis šifravimui/dešifravimui (bytes)
     # 64KB = pakankamai mažas, kad netektų krauti viso failo į RAM
     # Bet ne per mažas, kad nesukeltų per daug I/O operacijų
@@ -246,6 +254,15 @@ class Settings(BaseSettings):
         grąžina: (int) - max vietos vienam vartotojui bytes
         """
         return self.max_storage_per_user_mb * 1024 * 1024
+
+    @property
+    def monthly_transfer_limit_bytes(self) -> int:
+        """
+        gauna: nieko (savybė)
+        daro: konvertuoja monthly_transfer_limit_gb į bytes
+        grąžina: (int) - max mėnesinio srauto kiekis baitais
+        """
+        return self.monthly_transfer_limit_gb * 1024 * 1024 * 1024
 
     @property
     def session_expire_seconds(self) -> int:

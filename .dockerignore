@@ -1,0 +1,55 @@
+# ============================================================================
+# .dockerignore - failai, kurie NEKOPIJUOJAMI į Docker image'ą
+# ============================================================================
+
+# Git
+.git
+.gitignore
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.pytest_cache
+**/venv
+**/.venv
+**/env
+
+# Aplinka ir konfig (slapti raktai!)
+.env
+backend/.env
+backend/.env.example
+
+# Docker pats (Dockerfile/compose nereikia konteinerio viduje,
+# bet entrypoint.sh REIKIA - jis kopijuojamas COPY direktyva).
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Logai ir duomenų bazės
+*.log
+*.db
+*.db-journal
+backend/konradvault.db*
+backend/encrypted/
+backend/logs/
+
+# Dokumentacija ir originalai
+docs
+README.md
+README.lt.md
+LICENSE
+*.orig
+*.bak
+
+# Deployment failai (jie skirti bare-metal, nereikia Docker)
+deployment
+
+# Backup'ai šio etapo metu
+frontend/*.orig

@@ -591,6 +591,38 @@ def get_me(
 
 
 # ============================================
+# GET /api/auth/me-transfer-quota
+# ============================================
+# Grąžina vartotojo einamojo mėnesio srauto info: used/limit/remaining/percent.
+# Naudoja dashboard puslapis kvotos indicator'ui.
+
+@router.get(
+    "/me-transfer-quota",
+    status_code=status.HTTP_200_OK,
+    summary="Einamojo mėnesio srauto naudojimas",
+    description=(
+        "Grąžina vartotojo perduoto duomenų srauto info: kiek baitų sunaudota, "
+        "kiek likę, kada kitas reset'as. Į skaitiklį įeina upload + download + "
+        "share atsisiuntimai (savininkui)."
+    ),
+)
+def get_transfer_quota(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """
+    gauna: prisijungęs vartotojas
+    daro: grąžina dict su naudojimu šio mėnesio srauto kvotos
+    grąžina: dict (žr. transfer_quota.get_quota_info)
+    """
+    from app.utils.transfer_quota import get_quota_info
+    info = get_quota_info(current_user, db)
+    # Patikrinam, ar reikia commit'inti (jei reset įvyko per ensure_current_period)
+    db.commit()
+    return info
+
+
+# ============================================
 # VIEŠOJI REGISTRACIJA (be slaptažodžio)
 # ============================================
 
