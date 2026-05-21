@@ -489,6 +489,44 @@
       animation: shimmer 3s linear infinite;
     }
 
+    /* =============================================
+       MOBILE / RESPONSIVE
+    ============================================= */
+    @media (max-width: 640px) {
+      /* nav: mažesnis padding, kad logo + mygtukai tilptų siaurame ekrane */
+      nav {
+        padding: .8rem 1rem;
+      }
+
+      /* nav "Prisijungti" (btn-outline) slepiam telefone - login pasiekiamas
+         per hero mygtuką "Jau turiu paskyrą". Lieka tik logo + "Registruotis",
+         kad nav tilptų ir neperpildytų. (hero login NEpaliestas - jis ne nav viduj) */
+      nav .btn-outline {
+        display: none;
+      }
+
+      /* Hero title text-6xl (60px) per didelis labai siauruose telefonuose -
+         sumažinam, kad „KonradVault" neperpildytų ir neišsikreiptų */
+      .hero-title {
+        font-size: 2.75rem !important;   /* ~44px */
+        line-height: 1.05 !important;
+      }
+
+      /* Glassmorphism blur(16px) telefone brangokas - šiek tiek lengvinam */
+      .glass {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+    }
+
+    /* Lietimo įrenginiuose hover efektų nefiksuojam */
+    @media (hover: none) {
+      .glass:hover {
+        background: rgba(255,255,255,.04);
+        border-color: rgba(255,255,255,.08);
+      }
+    }
+
   </style>
 </head>
 
