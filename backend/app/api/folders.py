@@ -351,10 +351,10 @@ def update_folder(
     folder = _get_folder_or_404(folder_id, current_user, db)
 
     # Tikriname ar bent vienas laukas nurodytas
-    if payload.name is None and payload.color is None:
+    if payload.name is None and payload.color is None and payload.parent_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Nurodykite bent vieną lauką: name arba color.",
+            detail="Nurodykite bent vieną lauką: name, color arba parent_id.",
         )
 
     if payload.name is not None:
@@ -362,6 +362,54 @@ def update_folder(
 
     if payload.color is not None:
         folder.color = payload.color
+
+    # ----------------------------------------
+    # Perkėlimas į kitą tėvinį aplanką (parent_id)
+    # parent_id <= 0  -> į šakninį (None)
+    # parent_id  > 0  -> į nurodytą aplanką (su validacija + ciklo apsauga)
+    # ----------------------------------------
+    if payload.parent_id is not None:
+        if payload.parent_id <= 0:
+            folder.parent_id = None
+        else:
+            target_id = payload.parent_id
+
+            # Negalima perkelti aplanko į jį patį
+            if target_id == folder.id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Aplanko negalima perkelti į jį patį.",
+                )
+
+            # Tikslinis aplankas turi egzistuoti ir priklausyti vartotojui
+            target = db.query(Folder).filter(
+                Folder.id == target_id,
+                Folder.user_id == current_user.id,
+                Folder.is_deleted == False,  # noqa: E712
+            ).first()
+            if not target:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Tikslinis aplankas #{target_id} nerastas.",
+                )
+
+            # Ciklo apsauga: tikslinis aplankas negali būti šio aplanko
+            # palikuonis (kitaip susidarytų begalinis ciklas). Einame nuo
+            # target'o aukštyn iki šaknies – jei sutinkame folder.id, draudžiam.
+            ancestor = target
+            while ancestor is not None:
+                if ancestor.id == folder.id:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Negalima perkelti aplanko į jo paties paaplankį.",
+                    )
+                ancestor = (
+                    db.query(Folder).filter(Folder.id == ancestor.parent_id).first()
+                    if ancestor.parent_id is not None
+                    else None
+                )
+
+            folder.parent_id = target_id
 
     # Atnaujiname updated_at rankiniu būdu (SQLAlchemy neatnaujina automatiškai)
     folder.updated_at = datetime.now(timezone.utc)

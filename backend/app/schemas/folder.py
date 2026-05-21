@@ -141,6 +141,12 @@ class FolderUpdate(BaseModel):
         description="Nauja aplanko spalva HEX formatu (None = nekeisti)",
     )
 
+    # Naujas tėvinis aplankas (perkėlimas). None = nekeisti; <=0 = į šakninį.
+    parent_id: int | None = Field(
+        default=None,
+        description="Naujas tėvinis aplankas (perkėlimas). None = nekeisti; <=0 = šakninis.",
+    )
+
     @field_validator("name")
     @classmethod
     def strip_name(cls, value: str | None) -> str | None:

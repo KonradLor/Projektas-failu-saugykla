@@ -205,6 +205,10 @@
       gap: .25rem;
     }
     .file-card:hover .card-actions { display: flex; }
+    /* Mobiliame nėra hover -> veiksmų mygtukai (įsk. "⋯ Daugiau") visada matomi */
+    @media (max-width: 768px) {
+      .file-card .card-actions { display: flex; }
+    }
     .card-btn {
       width: 26px; height: 26px;
       border-radius: .4rem;
@@ -359,8 +363,30 @@
       color: #a78bfa;
       font-weight: 600;
       backdrop-filter: blur(4px);
+      /* SVARBU: pointer-events:none, kad overlay nepagautų paties drop'o ir
+         leistų taikytis į aplanko korteles po juo. */
+      pointer-events: none;
     }
     #drag-overlay.visible { display: flex; }
+
+    /* Drop taikinio paryškinimas (vilkdamas failą/aplanką virš aplanko ar
+       breadcrumb) */
+    .drop-target {
+      outline: 2px dashed #818cf8 !important;
+      outline-offset: 2px;
+      background: rgba(99,102,241,.18) !important;
+      border-radius: .6rem;
+    }
+
+    /* "Perkelti į…" modalo paskirties eilutės */
+    .move-dest {
+      display: flex; align-items: center; gap: .55rem; width: 100%;
+      text-align: left; padding: .6rem .75rem; border-radius: .55rem;
+      background: transparent; border: none; color: #cbd5e1;
+      font-size: .85rem; cursor: pointer; transition: background .15s;
+    }
+    .move-dest:hover:not(:disabled) { background: rgba(99,102,241,.15); color: #fff; }
+    .move-dest:disabled { opacity: .35; cursor: not-allowed; }
 
     /* ── CONTEXT MENU ───────────────────────────── */
     #ctx-menu {
@@ -863,10 +889,8 @@
       </div>
     </div>
 
-    <!-- Failų konteineris -->
-    <div id="files-container"
-         ondragover="onDragOver(event)" ondragleave="onDragLeave(event)"
-         ondrop="onDrop(event)">
+    <!-- Failų konteineris (drag&drop tvarkomas window lygyje – žr. JS) -->
+    <div id="files-container">
 
       <!-- Aplankalų eilutė (gridas) -->
       <div id="folders-row" class="mb-4 hidden">
@@ -953,6 +977,10 @@
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     Pervadinti
   </div>
+  <div class="ctx-item" onclick="ctxAction('move')">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><polyline points="12 11 12 17"/><polyline points="9 14 12 11 15 14"/></svg>
+    Perkelti į…
+  </div>
   <div class="ctx-divider"></div>
   <div class="ctx-item danger" onclick="ctxAction('delete')">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -1002,6 +1030,21 @@
     <div class="flex gap-2 justify-end">
       <button onclick="closeModal('modal-rename')" class="btn btn-ghost">Atšaukti</button>
       <button onclick="doRename()" class="btn btn-primary">Išsaugoti</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================
+     MODAL – PERKELTI Į… (veikia ir telefone, kur tampymas neįmanomas)
+================================================ -->
+<div id="modal-move" class="modal-bg" onclick="if(event.target===this)closeModal('modal-move')">
+  <div class="modal-box">
+    <h3 class="font-bold text-white text-lg mb-1">Perkelti į…</h3>
+    <p class="text-slate-500 text-xs mb-3" id="move-subtitle">Pasirinkite paskirties aplanką</p>
+    <div id="move-dest-list"
+         style="max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:.25rem;"></div>
+    <div class="flex gap-2 justify-end mt-4">
+      <button onclick="closeModal('modal-move')" class="btn btn-ghost">Atšaukti</button>
     </div>
   </div>
 </div>
@@ -1114,6 +1157,8 @@ const S = {
   view: 'grid',            // 'grid' | 'list'
   sort: 'name',
   ctxFile: null,           // dešinio paspaudimo taikinys
+  dragItem: null,          // vidinio tampymo taikinys {type,id,name}
+  moveItem: null,          // "Perkelti į..." modalo taikinys {type,id,name}
   renameTarget: null,      // {type:'file'|'folder', id, name}
   shareFileId: null,
   shareUrl: null,
@@ -1476,6 +1521,12 @@ function makeFileCard(f) {
   const card = document.createElement('div');
   card.className = 'file-card fade-in';
   card.dataset.id = f.id;
+  card.draggable = true;
+  card.addEventListener('dragstart', e => {
+    S.dragItem = { type: 'file', id: f.id, name: fname(f) };
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('application/x-kv-item', 'file:' + f.id); } catch (_) {}
+  });
 
   const { emoji, bg } = fileIcon(f.mime_type);
   const isImg = f.mime_type && f.mime_type.startsWith('image/');
@@ -1509,6 +1560,7 @@ function makeFileCard(f) {
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
       </div>
+      <div class="card-btn" data-action="more" data-id="${f.id}" title="Daugiau">⋯</div>
     </div>`;
 
   // Event delegation – išvengiame inline JS su user input
@@ -1521,6 +1573,10 @@ function makeFileCard(f) {
       if (!file) return;
       if (action === 'preview')  previewFile(id, fname(file));
       if (action === 'download') downloadFile(id, fname(file));
+      if (action === 'more') {
+        const r = btn.getBoundingClientRect();
+        showFileCtxMenu({ clientX: r.left, clientY: r.bottom }, file);
+      }
     });
   });
 
@@ -1537,6 +1593,12 @@ function makeFileListRow(f) {
   const row = document.createElement('div');
   row.className = 'list-row fade-in';
   row.dataset.id = f.id;
+  row.draggable = true;
+  row.addEventListener('dragstart', e => {
+    S.dragItem = { type: 'file', id: f.id, name: fname(f) };
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('application/x-kv-item', 'file:' + f.id); } catch (_) {}
+  });
   const { emoji, bg } = fileIcon(f.mime_type);
 
   row.innerHTML = `
@@ -1591,7 +1653,18 @@ function makeFolderCard(folder) {
       </svg>
     </div>
     <div class="fname">${esc(folder.name)}</div>
-    <div class="fmeta">${folder.file_count || 0} failas(-ų)</div>`;
+    <div class="fmeta">${folder.file_count || 0} failas(-ų)</div>
+    <div class="card-actions">
+      <div class="card-btn" data-action="folder-more" title="Daugiau">⋯</div>
+    </div>`;
+
+  // "⋯" – atidaro aplanko kontekstinį meniu (svarbu mobiliam, kur nėra hover)
+  card.querySelector('.card-btn[data-action="folder-more"]')
+    .addEventListener('click', e => {
+      e.stopPropagation();
+      const r = e.currentTarget.getBoundingClientRect();
+      showFolderContextMenu({ clientX: r.left, clientY: r.bottom }, folder);
+    });
   card.addEventListener('dblclick', () => {
     S.breadcrumb.push({ id: folder.id, name: folder.name });
     navigateTo(folder.id, folder.name);
@@ -1601,6 +1674,43 @@ function makeFolderCard(folder) {
     navigateTo(folder.id, folder.name);
   });
   card.addEventListener('contextmenu', e => { e.preventDefault(); showFolderContextMenu(e, folder); });
+
+  // ── Vidinis tampymas: aplankas YRA tempiamas ──
+  card.draggable = true;
+  card.addEventListener('dragstart', e => {
+    e.stopPropagation();
+    S.dragItem = { type: 'folder', id: folder.id, name: folder.name };
+    e.dataTransfer.effectAllowed = 'move';
+    try { e.dataTransfer.setData('application/x-kv-item', 'folder:' + folder.id); } catch (_) {}
+  });
+
+  // ── Aplankas YRA drop taikinys (priima failus iš explorerio IR vidinį move) ──
+  const canDrop = e =>
+    _dragHasFiles(e) ||
+    (S.dragItem && !(S.dragItem.type === 'folder' && S.dragItem.id === folder.id));
+
+  card.addEventListener('dragover', e => {
+    if (!canDrop(e)) return;
+    e.preventDefault(); e.stopPropagation();
+    card.classList.add('drop-target');
+  });
+  card.addEventListener('dragleave', e => {
+    e.stopPropagation();
+    card.classList.remove('drop-target');
+  });
+  card.addEventListener('drop', e => {
+    if (!canDrop(e)) return;
+    e.preventDefault(); e.stopPropagation();
+    card.classList.remove('drop-target');
+    if (_dragHasFiles(e)) {
+      if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files, folder.id);
+    } else if (S.dragItem) {
+      moveItemTo(S.dragItem, folder.id);
+    }
+    S.dragItem = null;
+    _showDropOverlay(false);
+  });
+
   return card;
 }
 
@@ -1630,6 +1740,7 @@ function renderBreadcrumb() {
   root.className = 'bc-item';
   root.textContent = 'Saugykla';
   root.onclick = () => navigateTo(null);
+  _makeBcDropTarget(root, null);   // numetus ant "Saugykla" -> į šakninį
   el.appendChild(root);
 
   S.breadcrumb.forEach((b, i) => {
@@ -1642,7 +1753,27 @@ function renderBreadcrumb() {
     item.className = 'bc-item' + (i === S.breadcrumb.length - 1 ? ' current' : '');
     item.textContent = b.name;
     if (i < S.breadcrumb.length - 1) item.onclick = () => navigateTo(b.id, b.name);
+    _makeBcDropTarget(item, b.id);   // numetus ant breadcrumb -> į tą aplanką
     el.appendChild(item);
+  });
+}
+
+/* Padaro breadcrumb elementą vidinio tampymo drop taikiniu.
+   targetId = null reiškia šakninį aplanką. */
+function _makeBcDropTarget(elm, targetId) {
+  elm.addEventListener('dragover', e => {
+    if (!S.dragItem) return;                 // tik vidinis move
+    if (S.dragItem.type === 'folder' && S.dragItem.id === targetId) return;
+    e.preventDefault();
+    elm.classList.add('drop-target');
+  });
+  elm.addEventListener('dragleave', () => elm.classList.remove('drop-target'));
+  elm.addEventListener('drop', e => {
+    if (!S.dragItem) return;
+    e.preventDefault();
+    elm.classList.remove('drop-target');
+    moveItemTo(S.dragItem, targetId);
+    S.dragItem = null;
   });
 }
 
@@ -1666,8 +1797,10 @@ const MAX_FILE_SIZE_MB    = 500;
 
 function triggerUpload() { document.getElementById('file-input').click(); }
 
-async function uploadFiles(files) {
+async function uploadFiles(files, targetFolderId) {
   if (!files || !files.length) return;
+  // targetFolderId nenurodytas -> dabartinis aplankas; null/undefined sutvarko uploadSingle
+  const folderId = (targetFolderId === undefined) ? S.currentFolderId : targetFolderId;
   const panel = document.getElementById('upload-panel');
   const items = document.getElementById('upload-items');
   panel.classList.add('visible');
@@ -1714,7 +1847,7 @@ async function uploadFiles(files) {
       </div>`;
     items.appendChild(itemEl);
 
-    await uploadSingle(file, uid);
+    await uploadSingle(file, uid, folderId);
   }
 
   // Perkrauname failų sąrašą
@@ -1722,11 +1855,13 @@ async function uploadFiles(files) {
   await loadFiles(S.currentFolderId);
 }
 
-function uploadSingle(file, uid) {
+function uploadSingle(file, uid, folderId) {
+  // folderId nenurodytas -> dabartinis aplankas
+  if (folderId === undefined) folderId = S.currentFolderId;
   return new Promise(resolve => {
     const fd = new FormData();
     fd.append('file', file);
-    if (S.currentFolderId !== null) fd.append('folder_id', S.currentFolderId);
+    if (folderId !== null && folderId !== undefined) fd.append('folder_id', folderId);
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/vault/api/files/upload');
@@ -1773,29 +1908,77 @@ function hideUploadPanel() {
 }
 
 /* ====================================================
-   DRAG & DROP
-==================================================== */
-let dragCounter = 0;
-function onDragOver(e) {
-  e.preventDefault(); e.stopPropagation();
-  if (dragCounter === 0) document.getElementById('drag-overlay').classList.add('visible');
-  dragCounter++;
-}
-function onDragLeave(e) {
-  e.preventDefault(); e.stopPropagation();
-  dragCounter--;
-  if (dragCounter <= 0) { dragCounter = 0; document.getElementById('drag-overlay').classList.remove('visible'); }
-}
-function onDrop(e) {
-  e.preventDefault(); e.stopPropagation();
-  dragCounter = 0;
-  document.getElementById('drag-overlay').classList.remove('visible');
-  if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);
+   DRAG & DROP – FAILŲ ĮKĖLIMAS IŠ EXPLORERIO (window lygyje)
+   ----------------------------------------------------
+   Anksčiau dragCounter buvo kabinamas ant 'dragover' (kuris kartojasi
+   nuolat), todėl skaitiklis niekada nenukrisdavo iki 0 -> pilno ekrano
+   overlay'us užstrigdavo ir blokuodavo puslapį ("užlūždavo").
+   Dabar: dragenter/dragleave su depth skaitikliu, TIK kai vilkimi FAILAI
+   (ne vidinis kortelių tampymas). Overlay pointer-events:none, kad
+   nepagautų paties drop'o ir leistų taikytis į aplanko korteles. */
+function _dragHasFiles(e) {
+  try { return Array.from(e.dataTransfer.types).includes('Files'); }
+  catch (_) { return false; }
 }
 
-// Neleisti defaultiniam drag naršyklėje
-document.addEventListener('dragover', e => e.preventDefault());
-document.addEventListener('drop',     e => e.preventDefault());
+let _extDragDepth = 0;
+function _showDropOverlay(v) {
+  document.getElementById('drag-overlay').classList.toggle('visible', v);
+}
+
+window.addEventListener('dragenter', e => {
+  if (!_dragHasFiles(e)) return;        // vidinis tampymas – ignoruojam čia
+  e.preventDefault();
+  _extDragDepth++;
+  _showDropOverlay(true);
+});
+window.addEventListener('dragover', e => {
+  if (_dragHasFiles(e)) e.preventDefault();   // leisti drop
+});
+window.addEventListener('dragleave', e => {
+  if (!_dragHasFiles(e)) return;
+  _extDragDepth--;
+  if (_extDragDepth <= 0) { _extDragDepth = 0; _showDropOverlay(false); }
+});
+window.addEventListener('drop', e => {
+  if (!_dragHasFiles(e)) return;        // vidinį move tvarko kortelės
+  e.preventDefault();
+  _extDragDepth = 0;
+  _showDropOverlay(false);
+  if (e.dataTransfer.files.length) uploadFiles(e.dataTransfer.files);  // į dabartinį aplanką
+});
+
+// Saugiklis: pasibaigus bet kokiam vilkimui – išvalom būsenas
+window.addEventListener('dragend', () => {
+  S.dragItem = null;
+  _extDragDepth = 0;
+  _showDropOverlay(false);
+  document.querySelectorAll('.drop-target').forEach(el => el.classList.remove('drop-target'));
+});
+
+/* ====================================================
+   PERKĖLIMAS (move) – bendras helper'is
+   ----------------------------------------------------
+   item = { type:'file'|'folder', id, name }
+   targetFolderId = number (į aplanką) | null (į šakninį) */
+async function moveItemTo(item, targetFolderId) {
+  if (!item) return;
+  // Apsauga: aplanko negalima dėti į jį patį
+  if (item.type === 'folder' && item.id === targetFolderId) return;
+  const dest = (targetFolderId === null || targetFolderId === undefined) ? -1 : targetFolderId;
+  try {
+    if (item.type === 'file') {
+      await apiJson('PATCH', `/files/${item.id}`, { folder_id: dest });
+    } else {
+      await apiJson('PATCH', `/folders/${item.id}`, { parent_id: dest });
+      await loadFolderTree();
+    }
+    showToast(`✅ "${item.name}" perkelta`);
+    await loadFiles(S.currentFolderId);
+  } catch (e) {
+    showToast('❌ ' + e.message, 'error');
+  }
+}
 
 /* ====================================================
    DOWNLOAD & PREVIEW
@@ -1884,6 +2067,7 @@ async function ctxAction(action) {
 
   if (f._isFolder) {
     if (action === 'rename') openRenameModal('folder', f.id, f.name);
+    if (action === 'move')   openMoveModal({ type: 'folder', id: f.id, name: f.name });
     if (action === 'delete') await deleteFolder(f.id, f.name);
     return;
   }
@@ -1891,8 +2075,71 @@ async function ctxAction(action) {
   if (action === 'preview')  previewFile(f.id, fname(f));
   if (action === 'download') downloadFile(f.id, fname(f));
   if (action === 'rename')   openRenameModal('file', f.id, fname(f));
+  if (action === 'move')     openMoveModal({ type: 'file', id: f.id, name: fname(f) });
   if (action === 'share')    openShareModal(f.id, fname(f));
   if (action === 'delete')   await deleteFile(f.id);
+}
+
+/* ====================================================
+   "PERKELTI Į…" MODALAS (veikia ir telefone)
+==================================================== */
+// Visi id'ai aplanko pomedyje (jis pats + palikuonys) – kad perkeldami
+// aplanką neleistume jo dėti į save ar į savo paaplankį.
+function _allFolderIds(node) {
+  let ids = [node.id];
+  (node.children || []).forEach(c => { ids = ids.concat(_allFolderIds(c)); });
+  return ids;
+}
+function _subtreeIds(nodes, id) {
+  for (const n of nodes) {
+    if (n.id === id) return _allFolderIds(n);
+    const r = _subtreeIds(n.children || [], id);
+    if (r) return r;
+  }
+  return null;
+}
+
+function _moveDestRow(icon, label, destId, depth, disabled) {
+  const row = document.createElement('button');
+  row.className = 'move-dest';
+  row.style.paddingLeft = (0.75 + depth * 1.1) + 'rem';
+  row.disabled = !!disabled;
+  row.innerHTML =
+    `<span style="flex-shrink:0">${icon}</span>` +
+    `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(label)}</span>`;
+  if (!disabled) {
+    row.onclick = async () => {
+      closeModal('modal-move');
+      await moveItemTo(S.moveItem, destId);
+    };
+  }
+  return row;
+}
+
+function openMoveModal(item) {
+  S.moveItem = item;
+  document.getElementById('move-subtitle').textContent = `"${item.name}" → pasirinkite aplanką`;
+  const list = document.getElementById('move-dest-list');
+  list.innerHTML = '';
+
+  // Jei perkeliam aplanką – išskiriam jį patį ir jo palikuonis (ciklo apsauga UI)
+  const exclude = item.type === 'folder'
+    ? (_subtreeIds(S.folderTree, item.id) || [item.id])
+    : [];
+
+  // Šakninis aplankas
+  list.appendChild(_moveDestRow('🏠', 'Šakninis aplankas (Saugykla)', null, 0));
+
+  // Visi aplankai (medis -> plokščias sąrašas su įtrauka)
+  const addNodes = (nodes, depth) => {
+    nodes.forEach(n => {
+      list.appendChild(_moveDestRow('📁', n.name, n.id, depth, exclude.includes(n.id)));
+      if (n.children && n.children.length) addNodes(n.children, depth + 1);
+    });
+  };
+  addNodes(S.folderTree, 0);
+
+  openModal('modal-move');
 }
 
 /* ====================================================
