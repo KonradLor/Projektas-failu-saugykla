@@ -515,6 +515,10 @@
       flex-direction: column; gap: 1rem; color: #334155;
       text-align: center;
     }
+    /* SVARBU: #empty-state (ID) display:flex nugalėdavo Tailwind .hidden klasę,
+       todėl empty-state rodydavosi net kai YRA failų/aplankų. Šis ID+class
+       selektorius (didesnis specifiškumas) leidžia .hidden tikrai paslėpti. */
+    #empty-state.hidden { display: none; }
 
     /* ── SEARCH ─────────────────────────────────── */
     #search-input {
@@ -564,6 +568,12 @@
         transform: translateX(-100%);
         transition: transform .25s ease;
         box-shadow: 8px 0 32px rgba(0,0,0,.5);
+        /* Mažiau permatomas (kad turinys už jo nesimaišytų), bet išlieka
+           modernus glass su blur. Bazinis rgba(255,255,255,.02) buvo per
+           skaidrus off-canvas overlay'ui. */
+        background: rgba(11, 11, 26, 0.92);
+        -webkit-backdrop-filter: blur(16px);
+        backdrop-filter: blur(16px);
       }
       #sidebar.open { transform: translateX(0); }
 
@@ -589,7 +599,17 @@
 
       /* Mažesni paddingai */
       #files-container { padding: .9rem; }
-      #toolbar { padding: 0 .9rem; }
+
+      /* Toolbar į dvi eilutes: pavadinimas+skaičius viršuj (pilnas plotis,
+         kad "Visa saugykla" tilptų), rūšiavimas+rodiniai apačioj. */
+      #toolbar {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: 0;
+        padding: .55rem .9rem;
+        row-gap: .5rem;
+      }
+      #toolbar > div:first-child { flex-basis: 100%; }
     }
 
     /* Hamburger mygtukas - rodomas tik mobiliame (md:hidden klasė HTML'e) */
@@ -804,8 +824,8 @@
     <div id="toolbar">
       <!-- Kairė pusė: aplanko pavadinimas + failų skaičius -->
       <div class="flex items-center gap-2 flex-1 min-w-0">
-        <h1 class="font-semibold text-white text-sm truncate" id="folder-title">Visa saugykla</h1>
-        <span class="text-xs text-slate-600" id="file-count-badge"></span>
+        <h1 class="font-semibold text-white text-sm truncate min-w-0" id="folder-title">Visa saugykla</h1>
+        <span class="text-xs text-slate-600 whitespace-nowrap shrink-0" id="file-count-badge"></span>
       </div>
 
       <!-- Dešinė pusė: view toggle + sort -->

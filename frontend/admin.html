@@ -198,9 +198,14 @@
 
     /* ─── MOBILE / RESPONSIVE ───────────────────────────────── */
     @media (max-width: 768px) {
-      .topbar { padding: 0 .9rem; }
-      /* Vartotojo vardas viršuje slepiamas (vietos taupymas) */
+      .topbar { padding: 0 .7rem; gap: .4rem; }
+      /* Vartotojo vardas + ADMIN ženklelis slepiami (vietos taupymas viršuje) */
       #nav-user { display: none; }
+      .admin-badge { display: none; }
+      /* Topbar grupių tarpai ir mygtukai kompaktiškesni, kad viskas tilptų */
+      .topbar > div { gap: .4rem !important; }
+      .topbar .btn { padding: .4rem .6rem; font-size: .72rem !important; }
+      .logo { font-size: .95rem; }
 
       /* Sidebar tampa horizontalia juosta (tik 3 elementai) */
       .layout { flex-direction: column; }
