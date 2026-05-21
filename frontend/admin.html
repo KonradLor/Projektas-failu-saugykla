@@ -289,7 +289,7 @@
       <!-- Storage usage per user -->
       <div class="glass" style="padding:1.5rem;">
         <div class="section-title">
-          <span>💾 Disko vietos naudojimas vartotojams</span>
+          <span>📊 Vartotojų naudojimas: vieta + srautas</span>
           <span id="storage-total-label" style="font-size:.8rem;color:#64748b;"></span>
         </div>
         <div id="storage-list">
@@ -515,8 +515,6 @@ async function loadStats() {
 }
 
 function renderStats(s) {
-  const maxMb = 2048; // per user
-
   /* cards */
   document.getElementById('stats-grid').innerHTML = `
     <div class="stat-card">
@@ -551,17 +549,35 @@ function renderStats(s) {
   }
 
   list.innerHTML = s.users_storage.map(u => {
-    const pct  = Math.min(100, Math.round((u.storage_used_bytes / (maxMb * 1048576)) * 100));
-    const clr  = pct > 85 ? '#f87171' : pct > 60 ? '#fbbf24' : '#6366f1';
+    // Vieta. Adminui storage_limit_bytes labai didelis (>=1 PB) = neribota -> ∞
+    const unlimited = u.is_admin || (u.storage_limit_bytes >= 1125899906842624); // 1 PiB
+    const sUsed  = u.storage_used_bytes || 0;
+    const sLimit = u.storage_limit_bytes || 1;
+    const sPct   = unlimited ? 0 : Math.min(100, Math.round(sUsed / sLimit * 100));
+    const sClr   = sPct > 85 ? '#f87171' : sPct > 60 ? '#fbbf24' : '#6366f1';
+    const sLimTxt = unlimited ? '∞' : formatBytes(sLimit);
+
+    // Srautas (mėnesinis)
+    const tUsed  = u.transfer_used_bytes || 0;
+    const tLimit = u.transfer_limit_bytes || 1;
+    const tPct   = Math.min(100, Math.round(tUsed / tLimit * 100));
+    const tClr   = tPct > 85 ? '#f87171' : tPct > 60 ? '#fbbf24' : '#34d399';
+
     return `
-      <div style="margin-bottom:.9rem;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.35rem;">
-          <span style="font-size:.85rem;font-weight:600;">${esc(u.username)}</span>
-          <span style="font-size:.78rem;color:#94a3b8;">${formatBytes(u.storage_used_bytes)} / ${formatBytes(maxMb * 1048576)}</span>
+      <div style="margin-bottom:1.15rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
+          <span style="font-size:.85rem;font-weight:600;">${esc(u.username)}${
+            u.is_admin ? ' <span style="font-size:.6rem;color:#f472b6;font-weight:700;letter-spacing:.05em;">ADMIN</span>' : ''
+          }</span>
         </div>
-        <div class="stor-bg">
-          <div class="stor-bar" style="width:${pct}%;background:${clr};"></div>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#94a3b8;margin-bottom:.2rem;">
+          <span>💾 Vieta</span><span>${formatBytes(sUsed)} / ${sLimTxt}</span>
         </div>
+        <div class="stor-bg"><div class="stor-bar" style="width:${sPct}%;background:${sClr};"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#94a3b8;margin:.45rem 0 .2rem;">
+          <span>📊 Srautas (mėn.)</span><span>${formatBytes(tUsed)} / ${formatBytes(tLimit)}</span>
+        </div>
+        <div class="stor-bg"><div class="stor-bar" style="width:${tPct}%;background:${tClr};"></div></div>
       </div>`;
   }).join('');
 }

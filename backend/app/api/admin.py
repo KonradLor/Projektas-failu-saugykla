@@ -658,6 +658,10 @@ def get_stats(
     grąžina: (UserStatsResponse) – statistikos duomenys
     """
     from app.schemas.user import UserStorageInfo
+    from app.utils.limits import (
+        storage_limit_bytes as _storage_limit,
+        transfer_limit_bytes as _transfer_limit,
+    )
 
     # ── Vartotojai ─────────────────────────────────────────────────────────
     total_users = db.query(func.count(User.id)).scalar() or 0
@@ -707,6 +711,10 @@ def get_stats(
             username=u.username,
             storage_used_bytes=u.storage_used_bytes,
             file_count=file_count_map.get(u.id, 0),
+            is_admin=u.is_admin,
+            storage_limit_bytes=_storage_limit(u),
+            transfer_used_bytes=u.transfer_used_bytes,
+            transfer_limit_bytes=_transfer_limit(u),
         )
         for u in users
     ]

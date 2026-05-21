@@ -239,6 +239,17 @@ class UserStorageInfo(BaseModel):
     username: str = Field(description="Vartotojo vardas")
     storage_used_bytes: int = Field(description="Naudojama disko vieta baitais")
     file_count: int = Field(description="Aktyvių failų skaičius")
+    is_admin: bool = Field(default=False, description="Ar vartotojas administratorius")
+    storage_limit_bytes: int = Field(
+        default=0,
+        description="Efektyvus disko vietos limitas baitais (adminui – labai didelis = neribota)",
+    )
+    transfer_used_bytes: int = Field(
+        default=0, description="Šio mėnesio sunaudoto srauto kiekis baitais",
+    )
+    transfer_limit_bytes: int = Field(
+        default=0, description="Efektyvus mėnesinio srauto limitas baitais",
+    )
 
     model_config = {"from_attributes": True}
 
