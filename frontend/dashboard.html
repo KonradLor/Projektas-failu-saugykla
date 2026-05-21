@@ -548,6 +548,57 @@
       border-radius: .5rem;
     }
     @keyframes shimmer { to { background-position: -200% center; } }
+
+    /* ── MOBILE / RESPONSIVE ──────────────────────
+       Telefone sidebar tampa "off-canvas" (išslystantis iš kairės),
+       valdomas hamburger mygtuku. Pagrindinis turinys užima visą plotį. */
+    #sidebar-backdrop { display: none; }
+
+    @media (max-width: 768px) {
+      #sidebar {
+        position: fixed;
+        top: 56px;            /* po topnav */
+        left: 0;
+        bottom: 0;
+        z-index: 45;
+        transform: translateX(-100%);
+        transition: transform .25s ease;
+        box-shadow: 8px 0 32px rgba(0,0,0,.5);
+      }
+      #sidebar.open { transform: translateX(0); }
+
+      /* Tamsus fonas už sidebar (paspaudus uždaro) */
+      #sidebar-backdrop {
+        position: fixed;
+        inset: 0;
+        top: 56px;
+        background: rgba(0,0,0,.55);
+        z-index: 44;
+      }
+      #sidebar-backdrop.show { display: block; }
+
+      /* Failų tinklelis - mažesnės kortelės, kad tilptų 2-3 stulpeliai */
+      #files-grid,
+      #folders-grid {
+        grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)) !important;
+        gap: .6rem;
+      }
+
+      /* Sąrašo rodinyje paslepiam datos stulpelį (siauram ekranui) */
+      .list-row .list-date { display: none; }
+
+      /* Mažesni paddingai */
+      #files-container { padding: .9rem; }
+      #toolbar { padding: 0 .9rem; }
+    }
+
+    /* Hamburger mygtukas - rodomas tik mobiliame (md:hidden klasė HTML'e) */
+    #sidebar-toggle {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      #sidebar-toggle { display: inline-flex; }
+    }
   </style>
 </head>
 <body>
@@ -556,6 +607,14 @@
      TOP NAV
 ================================================ -->
 <nav id="topnav">
+  <!-- Hamburger (tik mobiliame) - atidaro sidebar -->
+  <button id="sidebar-toggle" onclick="toggleSidebar()" class="btn-icon btn shrink-0"
+          title="Meniu" aria-label="Meniu">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+    </svg>
+  </button>
+
   <!-- Logo -->
   <a href="/vault/konradvault.html" class="flex items-center gap-2 mr-2 shrink-0">
     <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600
@@ -660,6 +719,9 @@
      PAGRINDINIS LAYOUT
 ================================================ -->
 <div id="layout">
+
+  <!-- Backdrop (mobiliame, už išslydusio sidebar) -->
+  <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
 
   <!-- ===== SIDEBAR ===== -->
   <aside id="sidebar">
@@ -2080,6 +2142,25 @@ function toggleUserMenu() {
 document.addEventListener('click', e => {
   if (!document.getElementById('user-menu-wrap').contains(e.target))
     document.getElementById('user-dropdown').classList.add('hidden');
+});
+
+/* ====================================================
+   SIDEBAR (mobiliame - off-canvas)
+==================================================== */
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  const open = sb.classList.toggle('open');
+  bd.classList.toggle('show', open);
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('show');
+}
+// Mobiliame paspaudus aplanką/naršymo elementą sidebar'e - automatiškai uždarom
+document.getElementById('sidebar')?.addEventListener('click', e => {
+  if (window.innerWidth > 768) return;
+  if (e.target.closest('.nav-item, .folder-tree-row')) closeSidebar();
 });
 
 async function logout() {

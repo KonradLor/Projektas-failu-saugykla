@@ -195,6 +195,40 @@
 
     /* ─── Empty ─────────────────────────────────────────────── */
     .empty { text-align:center; padding:3rem 1rem; color:#64748b; font-size:.9rem; }
+
+    /* ─── MOBILE / RESPONSIVE ───────────────────────────────── */
+    @media (max-width: 768px) {
+      .topbar { padding: 0 .9rem; }
+      /* Vartotojo vardas viršuje slepiamas (vietos taupymas) */
+      #nav-user { display: none; }
+
+      /* Sidebar tampa horizontalia juosta (tik 3 elementai) */
+      .layout { flex-direction: column; }
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        overflow-x: auto;
+        border-right: none;
+        border-bottom: 1px solid rgba(99,102,241,.15);
+        padding: .5rem .6rem;
+        gap: .4rem;
+      }
+      .sidebar .nav-item { width: auto; white-space: nowrap; }
+      .nav-sep { display: none; }
+
+      .main { padding: 1.1rem; }
+      .stats-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: .6rem;
+      }
+
+      /* Lentelė: horizontalus scroll, kad netilpdama nelaužytų layout'o */
+      #users-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+      .tbl { min-width: 620px; }
+    }
   </style>
 </head>
 <body>
