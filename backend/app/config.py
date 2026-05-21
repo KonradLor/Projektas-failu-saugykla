@@ -132,6 +132,11 @@ class Settings(BaseSettings):
     # apribotas atsargai (apsauga nuo netyčinio serverio srauto išnaudojimo).
     admin_monthly_transfer_limit_gb: int = Field(default=1000, gt=0)
 
+    # Administratoriui rodomas vardas (display name) UI'e. Username SSO atveju
+    # ateina iš Authentik (pvz. "akadmin") ir negali turėti didžiųjų raidžių,
+    # todėl rodomas vardas atskiras. Galima keisti per ADMIN_DISPLAY_NAME env.
+    admin_display_name: str = Field(default="Konradas")
+
     # Chunk dydis šifravimui/dešifravimui (bytes)
     # 64KB = pakankamai mažas, kad netektų krauti viso failo į RAM
     # Bet ne per mažas, kad nesukeltų per daug I/O operacijų

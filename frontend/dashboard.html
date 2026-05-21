@@ -1210,11 +1210,12 @@ async function init() {
     return;
   }
 
-  // Atnaujinti UI
-  const initials = S.user.username.slice(0,2).toUpperCase();
+  // Atnaujinti UI – rodom display_name (adminui "Konradas"), fallback į username
+  const shownName = S.user.display_name || S.user.username;
+  const initials = shownName.slice(0,2).toUpperCase();
   document.getElementById('avatar').textContent = initials;
-  document.getElementById('username-display').textContent = S.user.username;
-  document.getElementById('dd-username').textContent = S.user.username;
+  document.getElementById('username-display').textContent = shownName;
+  document.getElementById('dd-username').textContent = shownName;
   document.getElementById('dd-role').textContent = S.user.is_admin ? 'Administratorius' : 'Vartotojas';
   if (S.user.is_admin) document.getElementById('admin-link').classList.remove('hidden');
 

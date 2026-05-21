@@ -236,6 +236,21 @@ class User(Base):
         """
         return round(self.storage_used_bytes / (1024 * 1024), 2)
 
+    @property
+    def display_name(self) -> str:
+        """
+        gauna: nieko (savybė)
+        daro: grąžina vartotojui rodomą vardą. Administratoriui – iš konfigūracijos
+              (admin_display_name, pvz. "Konradas"); kitiems – jų username.
+              Atskirtas nuo username, nes username SSO atveju ateina iš Authentik
+              (pvz. "akadmin") ir negali turėti didžiųjų raidžių.
+        grąžina: (str) - rodomas vardas
+        """
+        from app.config import settings
+        if self.is_admin and getattr(settings, "admin_display_name", ""):
+            return settings.admin_display_name
+        return self.username
+
     def __repr__(self) -> str:
         """
         gauna: nieko

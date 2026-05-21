@@ -150,6 +150,9 @@ class UserResponse(BaseModel):
     # Vartotojo vardas
     username: str = Field(description="Prisijungimo vardas")
 
+    # Rodomas vardas (display name) - adminui pvz. "Konradas", kitiems = username
+    display_name: str = Field(default="", description="UI'e rodomas vardas")
+
     # Rolė
     is_admin: bool = Field(description="True jei administratorius")
 
