@@ -28,8 +28,9 @@ from pathlib import Path
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app import __app_name__, __description__, __version__
 from app.config import settings
@@ -284,6 +285,44 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "detail": "Įvyko vidinė serverio klaida. Susisiekite su administratoriumi.",
         },
+    )
+
+
+# ============================================
+# HTTP KLAIDŲ HANDLER'IS – naršyklės navigacija -> redirect į pradžią
+# ============================================
+
+def _is_browser_navigation(request: Request) -> bool:
+    """
+    gauna: request (Request)
+    daro: nustato, ar užklausa yra naršyklės TOP-LEVEL navigacija (vartotojas
+          įvedė URL adreso juostoje arba paspaudė nuorodą), o NE fetch/XHR.
+          - Sec-Fetch-Mode: navigate -> tikrai navigacija (modernios naršyklės)
+          - fallback: Accept turi text/html ir nėra application/json
+    grąžina: (bool)
+    """
+    if request.headers.get("sec-fetch-mode") == "navigate":
+        return True
+    accept = request.headers.get("accept", "")
+    return "text/html" in accept and "application/json" not in accept
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """
+    Naršyklėje įvedus klaidingą / neautorizuotą URL (401/403/404/405) vietoj
+    negražaus JSON ({"detail": ...}) nukreipiam vartotoją į vault pradžios
+    puslapį. API fetch/XHR užklausoms paliekam JSON – programos vidaus logika
+    (pvz. sesijos pasibaigimo aptikimas) remiasi JSON klaidomis.
+    """
+    if exc.status_code in (401, 403, 404, 405) and _is_browser_navigation(request):
+        landing = settings.base_url.rstrip("/") + "/"
+        return RedirectResponse(url=landing, status_code=status.HTTP_302_FOUND)
+
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=getattr(exc, "headers", None),
     )
 
 
