@@ -194,6 +194,11 @@ class Settings(BaseSettings):
     oidc_post_login_redirect: str = Field(default="/vault/dashboard.html")
     oidc_post_logout_redirect: str = Field(default="https://kondev.app/vault/")
 
+    # Vidinis service-to-service tokenas (dashboard -> vault).
+    # Naudojamas /api/internal/* endpoint'ams (pvz. vartotojo deaktyvavimo
+    # propagavimui iš centrinės admin panelės). Tuščias = vidiniai endpoint'ai išjungti.
+    internal_api_token: str = Field(default="")
+
     # ----------------------------------------
     # PYDANTIC NUSTATYMAI
     # ----------------------------------------

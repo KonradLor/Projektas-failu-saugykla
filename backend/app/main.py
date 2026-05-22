@@ -190,7 +190,9 @@ def _build_allowed_hosts() -> list[str]:
 
     # Leidžiame Nginx proxy lokalų ryšį + tikrąjį hostname/IP
     # localhost ir 127.0.0.1 – kad health check'ai ir lokalūs scripts veiktų
-    return [host, "localhost", "127.0.0.1"]
+    # konradvault-backend – vidinis docker vardas (service-to-service /api/internal/*
+    #   užklausoms iš dashboard per "web" tinklą)
+    return [host, "localhost", "127.0.0.1", "konradvault-backend"]
 
 
 app.add_middleware(
@@ -339,6 +341,7 @@ from app.api import share                                                   # RE
 from app.api import search                                                  # REALIZUOTA
 from app.api import trash                                                   # REALIZUOTA
 from app.api import admin                                                   # REALIZUOTA
+from app.api import internal                                                # service-to-service
 
 app.include_router(auth.router,    prefix="/api/auth",    tags=["Auth"])
 app.include_router(folders.router, prefix="/api/folders", tags=["Folders"])
@@ -347,6 +350,7 @@ app.include_router(share.router,   prefix="/api/share",   tags=["Share"])
 app.include_router(search.router,  prefix="/api/search",  tags=["Search"])
 app.include_router(trash.router,   prefix="/api/trash",   tags=["Trash"])
 app.include_router(admin.router,   prefix="/api/admin",   tags=["Admin"])
+app.include_router(internal.router, prefix="/api/internal", tags=["Internal"])
 
 
 # ============================================
