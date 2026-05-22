@@ -645,6 +645,112 @@ def sso_login(request: Request, db: Session = Depends(get_db)):
 
 
 # ============================================
+# OIDC centrinis prisijungimas (FAZĖ 3) - vault = Authentik OIDC klientas
+# ============================================
+# /api/auth/oidc-login    -> nukreipia į Authentik authorize
+# /api/auth/oidc-callback -> code -> token -> userinfo -> vault sesija.
+# Vartotojas mapinamas pagal preferred_username (esamas vault user -> jo failai
+# išsaugomi, nes tas pats šifravimo raktas). is_admin pagal Authentik grupę.
+
+@router.get("/oidc-login", include_in_schema=False)
+def oidc_login():
+    from fastapi.responses import RedirectResponse
+    import secrets as _secrets
+    import urllib.parse
+    if not settings.oidc_client_id or not settings.oidc_authorize_url:
+        raise HTTPException(status_code=500, detail="OIDC nesukonfigūruotas.")
+    state = _secrets.token_urlsafe(24)
+    params = {
+        "client_id": settings.oidc_client_id,
+        "redirect_uri": settings.oidc_redirect_uri,
+        "response_type": "code",
+        "scope": "openid profile email",
+        "state": state,
+    }
+    url = settings.oidc_authorize_url + "?" + urllib.parse.urlencode(params)
+    resp = RedirectResponse(url=url, status_code=302)
+    resp.set_cookie("vault_oidc_state", state, httponly=True,
+                    secure=not settings.debug, samesite="lax", max_age=600, path="/")
+    return resp
+
+
+@router.get("/oidc-callback", include_in_schema=False)
+def oidc_callback(
+    request: Request,
+    code: str = "",
+    state: str = "",
+    db: Session = Depends(get_db),
+):
+    import httpx
+    from fastapi.responses import RedirectResponse
+    from app.core.dependencies import _get_or_create_sso_user, SESSION_COOKIE_NAME
+
+    cookie_state = request.cookies.get("vault_oidc_state")
+    if not code or not state or state != cookie_state:
+        raise HTTPException(status_code=400, detail="OIDC state/code klaida.")
+    try:
+        with httpx.Client(timeout=15) as client:
+            tok = client.post(settings.oidc_token_url, data={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": settings.oidc_redirect_uri,
+                "client_id": settings.oidc_client_id,
+                "client_secret": settings.oidc_client_secret,
+            })
+            if tok.status_code != 200:
+                logger.error(f"OIDC token klaida: {tok.status_code} {tok.text[:200]}")
+                raise HTTPException(status_code=502, detail="OIDC token mainai nepavyko.")
+            access_token = tok.json().get("access_token")
+            ui = client.get(settings.oidc_userinfo_url,
+                            headers={"Authorization": f"Bearer {access_token}"})
+            if ui.status_code != 200:
+                raise HTTPException(status_code=502, detail="OIDC userinfo nepavyko.")
+            info = ui.json()
+    except httpx.HTTPError as exc:
+        logger.error(f"OIDC tinklo klaida: {exc}")
+        raise HTTPException(status_code=502, detail="OIDC serveris nepasiekiamas.")
+
+    username = info.get("preferred_username") or info.get("email") or info.get("sub")
+    email = info.get("email")
+    groups = info.get("groups", []) or []
+    is_admin = settings.oidc_admin_group in groups
+
+    user = _get_or_create_sso_user(username, email, db)
+    # is_admin nustatomas pagal Authentik grupę (ne pagal "pirmas vartotojas")
+    if user.is_admin != is_admin:
+        user.is_admin = is_admin
+
+    session_token = generate_session_token()
+    client_ip = (
+        request.headers.get("x-forwarded-for", "").split(",")[0].strip()
+        or (request.client.host if request.client else None)
+    )
+    new_session = UserSession(
+        token=session_token,
+        user_id=user.id,
+        ip_address=client_ip,
+        user_agent=request.headers.get("user-agent", "")[:500] or None,
+    )
+    db.add(new_session)
+    user.last_login = datetime.now(timezone.utc)
+    db.commit()
+
+    resp = RedirectResponse(url=settings.oidc_post_login_redirect, status_code=302)
+    resp.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        httponly=True,
+        secure=not settings.debug,
+        samesite="lax",
+        max_age=settings.session_expire_seconds,
+        path="/",
+    )
+    resp.delete_cookie("vault_oidc_state", path="/")
+    logger.info(f"OIDC login: '{user.username}' (id={user.id}, admin={is_admin})")
+    return resp
+
+
+# ============================================
 # GET /api/auth/me-transfer-quota
 # ============================================
 # Grąžina vartotojo einamojo mėnesio srauto info: used/limit/remaining/percent.

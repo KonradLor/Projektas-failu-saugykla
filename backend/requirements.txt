@@ -28,3 +28,4 @@ Pillow==10.4.0
 # pdf2image išjungtas – PDF preview šiuo metu daromas iframe per /preview endpoint'ą
 # Jei prireiks PDF thumbnail'ų pirmojo puslapio – atkomentuokite:
 # pdf2image==1.17.0
+httpx==0.27.2

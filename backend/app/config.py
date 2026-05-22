@@ -182,6 +182,19 @@ class Settings(BaseSettings):
     server_port: int = Field(default=8000, gt=0, le=65535)
 
     # ----------------------------------------
+    # OIDC (Authentik) centrinis prisijungimas (FAZĖ 3)
+    # ----------------------------------------
+    oidc_client_id: str = Field(default="")
+    oidc_client_secret: str = Field(default="")
+    oidc_authorize_url: str = Field(default="")
+    oidc_token_url: str = Field(default="")
+    oidc_userinfo_url: str = Field(default="")
+    oidc_redirect_uri: str = Field(default="")
+    oidc_admin_group: str = Field(default="authentik Admins")
+    oidc_post_login_redirect: str = Field(default="/vault/dashboard.html")
+    oidc_post_logout_redirect: str = Field(default="https://kondev.app/vault/")
+
+    # ----------------------------------------
     # PYDANTIC NUSTATYMAI
     # ----------------------------------------
 
