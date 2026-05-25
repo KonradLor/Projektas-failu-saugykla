@@ -24,8 +24,25 @@ import logging
 import os
 import uuid
 from pathlib import Path
+from urllib.parse import quote
 
 from app.config import settings
+
+
+def content_disposition(disposition: str, filename: str) -> str:
+    """Sudaro saugią Content-Disposition antraštę.
+
+    HTTP antraštės koduojamos latin-1, todėl ne-ASCII simboliai pavadinime
+    (pvz. em-brūkšnys '—', lietuviškos raidės) sukeltų UnicodeEncodeError ir 500.
+    Sprendimas (RFC 5987): ASCII atsarginis filename + filename*=UTF-8''<percent>.
+
+    disposition: "attachment" arba "inline".
+    """
+    ascii_name = (
+        filename.encode("ascii", "ignore").decode().replace('"', "'").strip()
+        or "download"
+    )
+    return f"{disposition}; filename=\"{ascii_name}\"; filename*=UTF-8''{quote(filename)}"
 
 
 # ============================================

@@ -43,7 +43,7 @@ from app.models.share_link import ShareLink
 from app.models.user import User
 from app.schemas.file import ShareLinkCreate, ShareLinkResponse
 from app.utils.api_helpers import get_user_decryption_key
-from app.utils.file_handler import encrypted_file_exists, get_encrypted_file_path
+from app.utils.file_handler import content_disposition, encrypted_file_exists, get_encrypted_file_path
 from app.utils.transfer_quota import add_usage as quota_add_usage
 from app.utils.transfer_quota import check_quota as quota_check
 
@@ -466,13 +466,11 @@ async def download_public_share(
     encrypted_path = get_encrypted_file_path(file_obj.stored_filename)
     stream = decrypt_file_streaming(encrypted_path, user_key)
 
-    safe_filename = file_obj.original_filename.replace('"', "'")
-
     return StreamingResponse(
         content=stream,
         media_type=file_obj.mime_type or "application/octet-stream",
         headers={
-            "Content-Disposition": f'attachment; filename="{safe_filename}"',
+            "Content-Disposition": content_disposition("attachment", file_obj.original_filename),
             "Content-Length": str(file_obj.size_bytes),
         },
     )

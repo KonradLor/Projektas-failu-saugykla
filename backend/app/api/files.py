@@ -56,6 +56,7 @@ from app.utils.transfer_quota import add_usage as quota_add_usage
 from app.utils.transfer_quota import check_quota as quota_check
 from app.utils.transfer_quota import ensure_current_period as quota_ensure_period
 from app.utils.file_handler import (
+    content_disposition,
     delete_encrypted_file,
     delete_temp_file,
     encrypted_file_exists,
@@ -488,12 +489,10 @@ async def download_file(
     encrypted_path = get_encrypted_file_path(file_obj.stored_filename)
     stream = decrypt_file_streaming(encrypted_path, user_key)
 
-    # Content-Disposition: attachment → naršyklė siūlo išsaugoti failą
-    # filename* RFC 5987 – palaikomas Unicode failų vardo kodavimas
-    safe_filename = file_obj.original_filename.replace('"', "'")
-
+    # Content-Disposition: attachment → naršyklė siūlo išsaugoti failą.
+    # RFC 5987 (filename*) – saugiai palaiko Unicode pavadinimus (em-dash, lietuviškas raides).
     headers = {
-        "Content-Disposition": f'attachment; filename="{safe_filename}"',
+        "Content-Disposition": content_disposition("attachment", file_obj.original_filename),
         "Content-Length": str(file_obj.size_bytes),
         "X-File-Hash": file_obj.file_hash or "",
     }
@@ -607,11 +606,9 @@ async def preview_file(
     encrypted_path = get_encrypted_file_path(file_obj.stored_filename)
     stream = decrypt_file_streaming(encrypted_path, user_key)
 
-    safe_filename = file_obj.original_filename.replace('"', "'")
-
     headers = {
         # inline → naršyklė rodo, ne siūlo atsisiųsti
-        "Content-Disposition": f'inline; filename="{safe_filename}"',
+        "Content-Disposition": content_disposition("inline", file_obj.original_filename),
         "Content-Length": str(file_obj.size_bytes),
         # Leidžiame naršyklei cache'inti preview (1 valanda)
         "Cache-Control": "private, max-age=3600",
