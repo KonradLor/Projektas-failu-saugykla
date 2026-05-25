@@ -304,8 +304,8 @@ def get_public_share_info(
             detail="Failas nebepasiekiamas.",
         )
 
-    # Failo savininko username – naudojama UI „Bendrino: ..." rodiniui
-    # Atskira užklausa, bet dėl tiesioginio user_id matomumo greita
+    # Failo savininko VARDAS (display_name) – naudojama UI „Bendrino: ..." rodiniui.
+    # display_name: adminui -> "Konradas" (admin_display_name), kitiems -> username.
     owner = db.query(User).filter(User.id == file_obj.user_id).first()
 
     return {
@@ -319,7 +319,7 @@ def get_public_share_info(
         "is_disabled":         link.is_disabled,
         "expires_at":          None,                 # nepalaikoma šioje versijoje
         "created_at":          link.created_at,
-        "owner_username":      owner.username if owner else None,
+        "owner_username":      owner.display_name if owner else None,
     }
 
 

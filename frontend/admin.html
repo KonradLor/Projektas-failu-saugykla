@@ -566,7 +566,7 @@ function renderStats(s) {
     return `
       <div style="margin-bottom:1.15rem;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.4rem;gap:.5rem;flex-wrap:wrap;">
-          <span style="font-size:.85rem;font-weight:600;">${esc(u.username)}${
+          <span style="font-size:.85rem;font-weight:600;">${esc(u.display_name || u.username)}${
             u.is_admin ? ' <span style="font-size:.6rem;color:#f472b6;font-weight:700;letter-spacing:.05em;">ADMIN</span>' : ''
           }</span>
         </div>
@@ -619,7 +619,7 @@ function renderUsers(users) {
     return `
       <tr>
         <td>
-          <div style="font-weight:600;">${esc(u.username)}</div>
+          <div style="font-weight:600;">${esc(u.display_name || u.username)}</div>
           <div style="font-size:.75rem;color:#64748b;">ID: ${u.id}</div>
         </td>
         <td>${roleBadge}</td>
@@ -630,9 +630,9 @@ function renderUsers(users) {
         <td>
           <div style="display:flex;gap:.4rem;justify-content:flex-end;">
             <button class="btn btn-ghost" style="font-size:.75rem;padding:.35rem .6rem;"
-                    onclick="openReset2FA(${u.id},'${esc(u.username)}')">🔄 2FA</button>
+                    onclick="openReset2FA(${u.id},'${esc(u.display_name || u.username)}')">🔄 2FA</button>
             <button class="btn btn-danger" style="font-size:.75rem;padding:.35rem .6rem;"
-                    onclick="openDeleteUser(${u.id},'${esc(u.username)}')">🗑</button>
+                    onclick="openDeleteUser(${u.id},'${esc(u.display_name || u.username)}')">🗑</button>
           </div>
         </td>
       </tr>`;
@@ -856,7 +856,7 @@ async function init() {
     return;
   }
 
-  document.getElementById('nav-user').textContent = `👤 ${me.username}`;
+  document.getElementById('nav-user').textContent = `👤 ${me.display_name || me.username}`;
   loadStats();
 }
 
