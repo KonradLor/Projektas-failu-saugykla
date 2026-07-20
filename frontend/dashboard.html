@@ -1793,8 +1793,10 @@ function sortFiles(v) { S.sort = v; renderAll(); }
 /* ====================================================
    UPLOAD
 ==================================================== */
-const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024;   // 500 MB (sutampa su backend MAX_FILE_SIZE_MB)
-const MAX_FILE_SIZE_MB    = 500;
+// KIETAS 5GB limitas VISIEMS – net adminui (sutampa su backend hard_max_file_size_mb).
+// Apsauga: 2026-07 per didelis (21GB) įkėlimas išsėmė serverio atmintį ir pakabino serverį.
+const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024;   // 5 GiB
+const MAX_FILE_SIZE_LABEL = '5 GB';
 
 function triggerUpload() { document.getElementById('file-input').click(); }
 
@@ -1807,19 +1809,18 @@ async function uploadFiles(files, targetFolderId) {
   panel.classList.add('visible');
 
   // ── Atmesti per didelius failus PRIEŠ upload'inant ──
-  // Apsauga nuo bandwidth eikvojimo + 500MB+ failai užblokuotų UI.
-  // Adminui failo dydis neribojamas - praleidžiam šį tikrinimą.
+  // KIETAS 5GB limitas VISIEMS – net adminui (jokios išimties). Per didelis
+  // įkėlimas išsemtų serverio atmintį ir pakabintų serverį. Backend'as tą patį
+  // limitą tikrina dar kartą (nepatikima kliento puse apeiti negalima).
   const tooBig = [];
-  if (!(S.user && S.user.is_admin)) {
-    for (const f of files) {
-      if (f.size > MAX_FILE_SIZE_BYTES) tooBig.push(f);
-    }
+  for (const f of files) {
+    if (f.size > MAX_FILE_SIZE_BYTES) tooBig.push(f);
   }
   if (tooBig.length > 0) {
     const names = tooBig.map(f =>
-      `${f.name} (${(f.size / 1024 / 1024).toFixed(1)} MB)`
+      `${f.name} (${(f.size / 1024 / 1024 / 1024).toFixed(2)} GB)`
     ).join(', ');
-    showToast(`❌ Failai per dideli (max ${MAX_FILE_SIZE_MB} MB): ${names}`, 'error');
+    showToast(`❌ Failai per dideli (max ${MAX_FILE_SIZE_LABEL}): ${names}`, 'error');
 
     // Filtruojame tinkamo dydžio failus, jei tokių dar yra
     files = Array.from(files).filter(f => f.size <= MAX_FILE_SIZE_BYTES);

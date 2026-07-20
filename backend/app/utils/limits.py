@@ -35,10 +35,19 @@ def storage_limit_bytes(user: User) -> int:
 
 
 def max_file_size_bytes(user: User) -> int:
-    """Maksimalus vieno failo dydis baitais (adminui – neribota)."""
+    """Maksimalus vieno failo dydis baitais.
+
+    KIETAS absoliutus limitas (settings.hard_max_file_size_bytes, pagal nutylėjimą
+    5 GiB) galioja VISIEMS – NET ADMINUI. Adminas nebeturi „neriboto" failo dydžio:
+    per didelis įkėlimas išsemtų serverio atmintį ir pakabintų serverį
+    (2026-07 incidentas – 21GB zip). Eilinis vartotojas papildomai ribojamas
+    savo settings.max_file_size_bytes (pvz. 500MB), bet niekada ne daugiau nei
+    kietas limitas.
+    """
+    hard_cap = settings.hard_max_file_size_bytes
     if user.is_admin:
-        return UNLIMITED_BYTES
-    return settings.max_file_size_bytes
+        return hard_cap
+    return min(settings.max_file_size_bytes, hard_cap)
 
 
 def transfer_limit_bytes(user: User) -> int:

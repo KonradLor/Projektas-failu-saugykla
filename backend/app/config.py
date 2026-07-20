@@ -115,6 +115,14 @@ class Settings(BaseSettings):
     # 500MB = 500 * 1024 * 1024 = 524288000 bytes
     max_file_size_mb: int = Field(default=500, gt=0, le=2048)
 
+    # ABSOLIUTUS vieno failo dydžio limitas MB — taikomas VISIEMS, net adminui.
+    # 5GB = 5120MB. Apsauga nuo per didelio įkėlimo, kuris išsemtų serverio
+    # atmintį ir pakabintų serverį (2026-07 incidentas: 21GB zip nuvertė serverį,
+    # nes adminas turėjo "neribotą" failo dydį). Šio limito NEGALIMA apeiti nei
+    # per admin sesiją, nei tiesiogiai per API — jis tikrinamas dar PRIEŠ body
+    # nuskaitymą (žr. main.py limit_upload_body_size middleware).
+    hard_max_file_size_mb: int = Field(default=5120, gt=0)
+
     # Maksimalus disko vietos kiekis vienam vartotojui (MB)
     # 2GB = 2048MB - apsauga nuo disk space išnaudojimo
     max_storage_per_user_mb: int = Field(default=2048, gt=0)
@@ -273,6 +281,15 @@ class Settings(BaseSettings):
         grąžina: (int) - max failo dydis bytes
         """
         return self.max_file_size_mb * 1024 * 1024
+
+    @property
+    def hard_max_file_size_bytes(self) -> int:
+        """
+        gauna: nieko (savybė)
+        daro: konvertuoja hard_max_file_size_mb į bytes
+        grąžina: (int) - absoliutus vieno failo limitas baitais (VISIEMS, net adminui)
+        """
+        return self.hard_max_file_size_mb * 1024 * 1024
 
     @property
     def max_storage_per_user_bytes(self) -> int:

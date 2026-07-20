@@ -217,6 +217,58 @@ app.add_middleware(
 
 
 # ============================================
+# CUSTOM MIDDLEWARE - UPLOAD BODY SIZE LIMIT
+# ============================================
+# Apsauga nuo per didelio įkėlimo: atmeta užklausą PAGAL Content-Length dar
+# PRIEŠ body nuskaitymą/multipart parsinimą. Tai kritiška – FastAPI `UploadFile`
+# dependency parsina VISĄ body PRIEŠ pakviečiant endpoint'ą, todėl patikra pačiame
+# endpoint'e būtų per vėlu (serveris jau būtų subuferavęs kelis GB į diską/RAM).
+# Middleware'as skaito TIK header'į, body neliečia, todėl įvyksta anksčiausiai.
+# 2026-07 incidentas: 21GB zip subuferavimas išsėmė atmintį ir pakabino serverį.
+_UPLOAD_ENDPOINT_PATH = "/api/files/upload"
+# Nedidelis rezervas multipart „framing" overhead'ui virš tikro failo limito
+# (tikslus per-baitinis limitas dar kartą tikrinamas stream_upload_to_temp).
+_UPLOAD_BODY_OVERHEAD = 8 * 1024 * 1024  # 8 MiB
+
+
+@app.middleware("http")
+async def limit_upload_body_size(request: Request, call_next):
+    """
+    gauna: request (Request) – HTTP užklausa
+           call_next – kitas middleware/endpoint
+    daro: jei tai POST į failo įkėlimo endpoint'ą ir Content-Length viršija kietą
+          limitą (settings.hard_max_file_size_bytes + rezervas), grąžina 413 dar
+          PRIEŠ nuskaitant body. Taikoma VISIEMS – net adminui. Kitu atveju
+          praleidžia toliau nekliudydamas.
+    grąžina: (Response) – 413 arba įprastas atsakymas
+    """
+    if request.method == "POST" and request.url.path.rstrip("/") == _UPLOAD_ENDPOINT_PATH:
+        content_length = request.headers.get("content-length")
+        if content_length is not None:
+            try:
+                declared = int(content_length)
+            except ValueError:
+                declared = -1
+            max_body = settings.hard_max_file_size_bytes + _UPLOAD_BODY_OVERHEAD
+            if declared > max_body:
+                max_gb = settings.hard_max_file_size_bytes / (1024 ** 3)
+                logger.warning(
+                    "Atmestas per didelis įkėlimas (Content-Length=%s B > %s B limitas)",
+                    declared, max_body,
+                )
+                return JSONResponse(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    content={
+                        "detail": (
+                            f"Failas per didelis. Maksimalus leidžiamas dydis: "
+                            f"{max_gb:.0f} GB."
+                        )
+                    },
+                )
+    return await call_next(request)
+
+
+# ============================================
 # CUSTOM MIDDLEWARE - SECURITY HEADERS
 # ============================================
 
